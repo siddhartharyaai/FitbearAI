@@ -65,17 +65,26 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
   const handleSubmit = async () => {
     try {
       // Calculate age from DOB with validation
-      const age = formData.dob ? new Date().getFullYear() - new Date(formData.dob).getFullYear() : 25;
-      const validAge = isNaN(age) || age < 10 || age > 100 ? 25 : age;
+      const rawAge = formData.dob ? new Date().getFullYear() - new Date(formData.dob).getFullYear() : null;
+      const age = (rawAge && !isNaN(rawAge) && rawAge > 0 && rawAge < 120) ? rawAge : 25;
+      
+      // Validate and sanitize all numeric values
+      const height_cm = parseInt(formData.height_cm) || 165;
+      const weight_kg = parseFloat(formData.weight_kg) || 65;
       
       // Validate and prepare TDEE request data
       const tdeeRequestData = {
         sex: formData.gender || 'male',
-        age: validAge,
-        height_cm: parseInt(formData.height_cm) || 165,
-        weight_kg: parseFloat(formData.weight_kg) || 65,
+        age: age,
+        height_cm: height_cm,
+        weight_kg: weight_kg,
         activity_level: formData.activity_level || 'moderate'
       };
+      
+      // Ensure all values are valid and not NaN
+      if (isNaN(tdeeRequestData.age) || isNaN(tdeeRequestData.height_cm) || isNaN(tdeeRequestData.weight_kg)) {
+        throw new Error('Invalid numerical values in form data. Please check your inputs.');
+      }
       
       console.log('TDEE Request data:', tdeeRequestData);
       
@@ -91,19 +100,10 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
       if (!tdeeResponse.ok) {
         const errorText = await tdeeResponse.text();
         console.log('TDEE Error response:', errorText);
-        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText} - ${errorText}`);
+        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText}`);
       }
       
-      const responseText = await tdeeResponse.text();
-      console.log('TDEE Raw response:', responseText);
-      
-      let tdeeData;
-      try {
-        tdeeData = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON Parse error:', parseError);
-        throw new Error(`Invalid JSON response from TDEE API: ${responseText}`);
-      }
+      const tdeeData = await tdeeResponse.json();
       
       // Prepare profile data
       const profileData = {
