@@ -101,3 +101,87 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the Fitbear AI backend functionality, specifically: API Health Check, Menu Scanner Endpoint, Coach Chat Endpoint, and TDEE Calculator"
+
+backend:
+  - task: "API Health Check"
+    implemented: true
+    working: "NA"
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Initial testing setup - GET /api/ endpoint needs verification"
+
+  - task: "Menu Scanner Endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Initial testing setup - POST /api/menu/scan with OCR and food recommendations needs verification"
+
+  - task: "Coach Chat Endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Initial testing setup - POST /api/coach/ask with Gemini AI integration needs verification"
+
+  - task: "TDEE Calculator"
+    implemented: true
+    working: "NA"
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Initial testing setup - POST /api/tools/tdee with body measurements needs verification"
+
+frontend:
+  - task: "Frontend UI Integration"
+    implemented: true
+    working: "NA"
+    file: "/app/app/page.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Frontend testing not performed by testing agent - system limitation"
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "API Health Check"
+    - "Menu Scanner Endpoint"
+    - "Coach Chat Endpoint"
+    - "TDEE Calculator"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "testing"
+    message: "Starting comprehensive backend testing for Fitbear AI. Will test all 4 main API endpoints with realistic Indian nutrition data."
