@@ -623,7 +623,11 @@ def main():
         ("Menu Scanner", test_menu_scanner),
         ("Coach Chat", test_coach_chat),
         ("TDEE Calculator", test_tdee_calculator),
-        ("Error Handling", test_error_handling)
+        ("Error Handling", test_error_handling),
+        ("Meal Photo Analyzer", test_meal_photo_analyzer),
+        ("Food Logging System", test_food_logging_system),
+        ("Profile Endpoints", test_profile_endpoints),
+        ("Targets Endpoint", test_targets_endpoint)
     ]
     
     results = {}
