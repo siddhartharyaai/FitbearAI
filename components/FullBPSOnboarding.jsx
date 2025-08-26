@@ -93,19 +93,16 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
         body: JSON.stringify(tdeeRequestData)
       });
       
-      // Debug the response
+      // Get response as text first to avoid consumption issues
+      const responseText = await tdeeResponse.text();
+      
       console.log('TDEE Response status:', tdeeResponse.status);
-      console.log('TDEE Response headers:', Object.fromEntries(tdeeResponse.headers.entries()));
+      console.log('TDEE Raw response text:', responseText);
       
       if (!tdeeResponse.ok) {
-        const errorText = await tdeeResponse.text();
-        console.error('TDEE API Error:', errorText);
-        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText} - ${errorText}`);
+        console.error('TDEE API Error:', responseText);
+        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText} - ${responseText}`);
       }
-      
-      // Get response as text first to debug
-      const responseText = await tdeeResponse.text();
-      console.log('TDEE Raw response text:', responseText);
       
       // Check if response is empty or invalid
       if (!responseText || responseText.trim() === '') {
@@ -123,8 +120,8 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
       }
       
       // Validate the parsed data
-      if (!tdeeData || typeof tdeeData.tdee_kcal !== 'number') {
-        throw new Error(`Invalid TDEE response format: ${JSON.stringify(tdeeData)}`);
+      if (!tdeeData || typeof tdeeData.tdee_kcal !== 'number' || isNaN(tdeeData.tdee_kcal)) {
+        throw new Error(`Invalid TDEE response format or NaN result: ${JSON.stringify(tdeeData)}`);
       }
       
       // Prepare profile data
