@@ -87,10 +87,33 @@ export default function FitbearApp() {
   const loadDailyTargets = async () => {
     try {
       const response = await fetch('/api/me/targets');
-      const targets = await response.json();
-      setDailyTargets(targets);
+      
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        throw new Error(`Failed to load targets: ${response.status} ${response.statusText}`);
+      }
+      
+      // Get response as text first to check if it's valid JSON
+      const responseText = await response.text();
+      
+      if (!responseText || responseText.trim() === '') {
+        console.warn('Empty response from targets API, using defaults');
+        setDailyTargets(null);
+        return;
+      }
+      
+      try {
+        const targets = JSON.parse(responseText);
+        setDailyTargets(targets);
+      } catch (parseError) {
+        console.error('Failed to parse targets JSON:', parseError);
+        console.error('Response text was:', responseText);
+        setDailyTargets(null);
+      }
+      
     } catch (error) {
       console.error('Failed to load targets:', error);
+      setDailyTargets(null);
     }
   };
 
