@@ -79,7 +79,7 @@ node scripts/rls_denial.test.js
 ### Backend API Tests
 ```bash
 # Run comprehensive backend tests
-node backend_test.py
+python backend_test.py
 ```
 
 ### RLS Security Tests
@@ -91,7 +91,7 @@ node scripts/rls_denial.test.js
 ### Critical Features Test
 ```bash
 # Test Menu Scanner (Gemini Vision) + Photo Analyzer
-node critical_test.py
+python critical_test.py
 ```
 
 ## 🌟 Core Features
