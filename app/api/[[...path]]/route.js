@@ -483,6 +483,38 @@ export async function GET(request) {
   }
 }
 
+export async function PUT(request) {
+  const pathname = new URL(request.url).pathname;
+  
+  try {
+    // Profile endpoints
+    if (pathname.includes('/me/profile')) {
+      const profileData = await request.json();
+      const updatedProfile = await updateUserProfile(profileData);
+      return NextResponse.json(updatedProfile);
+    }
+    
+    // Daily targets endpoint  
+    if (pathname.includes('/me/targets')) {
+      const targetData = await request.json();
+      const updatedTargets = await upsertDailyTargets(targetData);
+      return NextResponse.json(updatedTargets);
+    }
+    
+    return NextResponse.json(
+      { error: { type: 'Logic', message: 'PUT endpoint not found' } },
+      { status: 404 }
+    );
+    
+  } catch (error) {
+    console.error('PUT API Error:', error);
+    return NextResponse.json(
+      { error: { type: 'Logic', message: error.message } },
+      { status: 500 }
+    );
+  }
+}
+
 // Meal Photo Analysis using Gemini Vision
 async function analyzeMealPhoto(imageFile) {
   try {
