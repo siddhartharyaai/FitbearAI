@@ -50,6 +50,12 @@ export default function FitbearApp() {
       setEmail(savedEmail);
       setRememberMe(true);
     }
+    
+    // Check if user is coming from password reset link
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('type') === 'recovery') {
+      setStep('reset-password');
+    }
   }, []);
 
   useEffect(() => {
