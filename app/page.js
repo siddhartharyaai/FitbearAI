@@ -82,26 +82,34 @@ export default function FitbearApp() {
     }
   };
 
-  const handleLogin = async (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithOtp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
-        options: { shouldCreateUser: true }
+        password: password,
       });
       
       if (error) throw error;
       
+      // Handle "Remember Me" functionality
+      if (rememberMe) {
+        localStorage.setItem('fitbear_remember_email', email);
+      } else {
+        localStorage.removeItem('fitbear_remember_email');
+      }
+      
       toast({
-        title: "OTP Sent!",
-        description: "Check your email for the verification code.",
+        title: "Welcome back!",
+        description: "Successfully signed in to Fitbear AI.",
       });
-      setStep('verify');
+      
+      await getProfile();
     } catch (error) {
       toast({
-        title: "Error",
+        title: "Sign In Error",
         description: error.message,
         variant: "destructive",
       });
@@ -110,23 +118,121 @@ export default function FitbearApp() {
     }
   };
 
-  const handleVerifyOTP = async (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: otp,
-        type: 'email'
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
       });
       
       if (error) throw error;
       
+      toast({
+        title: "Account Created!",
+        description: "Please check your email to verify your account.",
+      });
+      
+      setStep('signin');
+    } catch (error) {
+      toast({
+        title: "Sign Up Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Reset Email Sent!",
+        description: "Check your email for password reset instructions.",
+      });
+      
+      setStep('signin');
+    } catch (error) {
+      toast({
+        title: "Reset Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      toast({
+        title: "Password Mismatch", 
+        description: "Passwords do not match. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Password Updated!",
+        description: "Your password has been successfully changed.",
+      });
+      
       await getProfile();
     } catch (error) {
       toast({
-        title: "Error", 
+        title: "Reset Error",
         description: error.message,
         variant: "destructive",
       });
