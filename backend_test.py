@@ -38,7 +38,7 @@ def test_api_health_check():
     print("="*60)
     
     try:
-        response = requests.get(f"{BASE_URL}/", timeout=30)
+        response = requests.get(f"{BASE_URL}", timeout=30)
         print(f"Status Code: {response.status_code}")
         print(f"Response: {response.text}")
         
