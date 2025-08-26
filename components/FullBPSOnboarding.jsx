@@ -125,6 +125,11 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
     });
 
     onComplete(profileData, targetsData);
+    
+    } catch (error) {
+      console.error('Onboarding completion error:', error);
+      alert(`Setup failed: ${error.message}. Please check your inputs and try again.`);
+    }
   };
 
   const totalSteps = 5;
