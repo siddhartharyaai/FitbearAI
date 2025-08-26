@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Camera, Utensils, MessageSquare, User, Scan, Activity, Settings, AlertTriangle } from 'lucide-react';
+import { Loader2, Camera, Utensils, MessageSquare, User, Scan, Activity, Settings, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { VoiceButton, CoachSpeaker } from '@/components/VoiceButton';
 import { usePostHog } from '@/lib/hooks/usePostHog';
