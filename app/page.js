@@ -20,8 +20,11 @@ export default function FitbearApp() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('login');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState('signin');
   const [profile, setProfile] = useState(null);
   const [dailyTargets, setDailyTargets] = useState(null);
   const [scanResult, setScanResult] = useState(null);
