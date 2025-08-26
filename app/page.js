@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Camera, Utensils, MessageSquare, User, Scan, Activity, Settings } from 'lucide-react';
+import { Loader2, Camera, Utensils, MessageSquare, User, Scan, Activity, Settings, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { VoiceButton, CoachSpeaker } from '@/components/VoiceButton';
 import { usePostHog } from '@/lib/hooks/usePostHog';
@@ -21,14 +21,16 @@ export default function FitbearApp() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('login'); // login, verify, onboarding, app
+  const [step, setStep] = useState('login');
   const [profile, setProfile] = useState(null);
+  const [dailyTargets, setDailyTargets] = useState(null);
   const [scanResult, setScanResult] = useState(null);
   const [photoAnalysis, setPhotoAnalysis] = useState(null);
   const [foodLogs, setFoodLogs] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
-  const [mode, setMode] = useState('Demo'); // Demo | Production
+  const [mode, setMode] = useState('Demo');
+  const [currentView, setCurrentView] = useState('app');
   
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fqhffciiaztcycvvwrnd.supabase.co',
@@ -51,7 +53,6 @@ export default function FitbearApp() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUser(user);
-      // Check if profile exists
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -60,10 +61,21 @@ export default function FitbearApp() {
       
       if (profileData) {
         setProfile(profileData);
+        loadDailyTargets();
         setStep('app');
       } else {
         setStep('onboarding');
       }
+    }
+  };
+
+  const loadDailyTargets = async () => {
+    try {
+      const response = await fetch('/api/me/targets');
+      const targets = await response.json();
+      setDailyTargets(targets);
+    } catch (error) {
+      console.error('Failed to load targets:', error);
     }
   };
 
@@ -138,6 +150,12 @@ export default function FitbearApp() {
       if (!response.ok) throw new Error(result.error?.message || 'Scan failed');
       
       setScanResult(result);
+      track('menu_scanned', {
+        items_found: result.items?.length || 0,
+        ocr_method: result.ocr_method,
+        confidence: result.confidence
+      });
+      
       toast({
         title: "Menu Scanned!",
         description: `Found ${result.items?.length || 0} items with recommendations.`,
@@ -171,6 +189,11 @@ export default function FitbearApp() {
       if (!response.ok) throw new Error(result.error?.message || 'Analysis failed');
       
       setPhotoAnalysis(result);
+      track('photo_logged', {
+        confidence: result.confidence,
+        items_detected: result.guess?.length || 0
+      });
+      
       toast({
         title: "Meal Analyzed!",
         description: `Detected ${result.guess?.length || 0} food items.`,
@@ -178,6 +201,47 @@ export default function FitbearApp() {
     } catch (error) {
       toast({
         title: "Analysis Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCoachChat = async (message) => {
+    if (!message.trim()) return;
+    
+    const userMessage = { role: 'user', content: message };
+    setChatMessages(prev => [...prev, userMessage]);
+    setCurrentMessage('');
+    setLoading(true);
+    
+    try {
+      const response = await fetch('/api/coach/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          profile: profile,
+          context_flags: ['nutrition', 'indian_diet']
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) throw new Error(result.error?.message || 'Coach error');
+      
+      const coachMessage = { role: 'assistant', content: result.reply };
+      setChatMessages(prev => [...prev, coachMessage]);
+      
+      track('coach_reply_shown', {
+        message_length: message.length,
+        response_length: result.reply.length
+      });
+    } catch (error) {
+      toast({
+        title: "Coach Error",
         description: error.message,
         variant: "destructive",
       });
@@ -207,7 +271,6 @@ export default function FitbearApp() {
         description: `${result.calories} calories added to your diary.`,
       });
       
-      // Refresh food logs
       await loadFoodLogs();
     } catch (error) {
       toast({
@@ -230,49 +293,25 @@ export default function FitbearApp() {
     }
   };
 
+  const handleRecommendationTap = (item) => {
+    track('recommendation_tapped', {
+      item_name: item.name,
+      calories: item.calories,
+      protein: item.protein_g
+    });
+    handleLogFood({ 
+      food_id: item.name.toLowerCase().replace(' ', '-'),
+      portion_qty: 1,
+      portion_unit: 'serving'
+    });
+  };
+
   useEffect(() => {
     if (user && profile) {
       loadFoodLogs();
     }
   }, [user, profile]);
 
-  const handleCoachChat = async (message) => {
-    if (!message.trim()) return;
-    
-    const userMessage = { role: 'user', content: message };
-    setChatMessages(prev => [...prev, userMessage]);
-    setCurrentMessage('');
-    setLoading(true);
-    
-    try {
-      const response = await fetch('/api/coach/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          profile: profile,
-          context_flags: ['nutrition', 'indian_diet']
-        }),
-      });
-      
-      const result = await response.json();
-      
-      if (!response.ok) throw new Error(result.error?.message || 'Coach error');
-      
-      const coachMessage = { role: 'assistant', content: result.reply };
-      setChatMessages(prev => [...prev, coachMessage]);
-    } catch (error) {
-      toast({
-        title: "Coach Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Prevent hydration mismatch by not rendering until client-side
   if (!mounted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
@@ -284,7 +323,6 @@ export default function FitbearApp() {
     );
   }
 
-  // Render login screen
   if (step === 'login') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
@@ -316,7 +354,6 @@ export default function FitbearApp() {
     );
   }
 
-  // Render OTP verification
   if (step === 'verify') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
@@ -345,21 +382,18 @@ export default function FitbearApp() {
     );
   }
 
-  // Render onboarding (BPS)
   if (step === 'onboarding') {
     return (
       <FullBPSOnboarding
         onComplete={async (profileData, targetsData) => {
           setLoading(true);
           try {
-            // Save profile
             const { error: profileError } = await supabase
               .from('profiles')
               .insert([{ user_id: user.id, ...profileData }]);
             
             if (profileError) throw profileError;
 
-            // Save targets
             const targetsResponse = await fetch('/api/me/targets', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -373,7 +407,9 @@ export default function FitbearApp() {
                 veg: profileData.veg_flag,
                 jain: profileData.jain_flag,
                 halal: profileData.halal_flag
-              }
+              },
+              activity_level: profileData.activity_level,
+              locale: profileData.locale
             });
 
             await getProfile();
@@ -392,7 +428,28 @@ export default function FitbearApp() {
     );
   }
 
-  // Main app interface
+  if (currentView === 'settings') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
+        <div className="container mx-auto max-w-4xl">
+          <SettingsPage
+            profile={profile}
+            onUpdateProfile={setProfile}
+            onBack={() => setCurrentView('app')}
+            mode={mode}
+            onModeChange={(newMode) => {
+              setMode(newMode);
+              toast({
+                title: `Switched to ${newMode} Mode`,
+                description: newMode === 'Production' ? 'Mock endpoints now disabled' : 'Using sample data'
+              });
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Mode Banner */}
@@ -405,17 +462,11 @@ export default function FitbearApp() {
           <span>🚀</span>
           <span>{mode} Mode</span>
           {mode === 'Demo' && <span>• Sample data shown for demonstration</span>}
-          <button 
-            onClick={() => setMode(mode === 'Demo' ? 'Production' : 'Demo')}
-            className="ml-4 px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30"
-          >
-            Switch to {mode === 'Demo' ? 'Production' : 'Demo'}
-          </button>
         </div>
       </div>
 
       <div className="container mx-auto p-4 max-w-4xl">
-        {/* Header */}
+        {/* Header with Targets */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
@@ -426,19 +477,58 @@ export default function FitbearApp() {
               <p className="text-sm text-muted-foreground">Welcome back, {profile?.name}</p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => supabase.auth.signOut()}
-            size="sm"
-          >
-            <User className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentView('settings')}
+              size="sm"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => supabase.auth.signOut()}
+              size="sm"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
+
+        {/* Daily Targets Dashboard */}
+        {dailyTargets && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Today's Targets</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{dailyTargets.kcal_budget}</p>
+                  <p className="text-sm text-muted-foreground">Calories</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">{dailyTargets.protein_g}g</p>
+                  <p className="text-sm text-muted-foreground">Protein</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-purple-600">{dailyTargets.water_ml}ml</p>
+                  <p className="text-sm text-muted-foreground">Water</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-orange-600">{dailyTargets.steps}</p>
+                  <p className="text-sm text-muted-foreground">Steps</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Tabs */}
         <Tabs defaultValue="scanner" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="scanner" className="flex items-center space-x-2">
               <Scan className="w-4 h-4" />
               <span>Menu Scanner</span>
@@ -454,10 +544,6 @@ export default function FitbearApp() {
             <TabsTrigger value="history" className="flex items-center space-x-2">
               <Activity className="w-4 h-4" />
               <span>History</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center space-x-2">
-              <Settings className="w-4 h-4" />
-              <span>Settings</span>
             </TabsTrigger>
           </TabsList>
 
@@ -499,16 +585,33 @@ export default function FitbearApp() {
                   </div>
                 )}
 
+                {/* OCR Degraded Confidence Banner */}
+                {scanResult?.degraded && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      <strong>Degraded Confidence:</strong> Using fallback OCR. Please verify items below.
+                      {scanResult.confidence && ` (Confidence: ${(scanResult.confidence * 100).toFixed(0)}%)`}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {scanResult && (
                   <div className="space-y-4">
-                    <h3 className="font-semibold">Recommendations for you:</h3>
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold">Recommendations for you:</h3>
+                      <Badge variant="outline">
+                        {scanResult.ocr_method === 'gemini_vision' ? 'AI Vision' : 'Fallback OCR'}
+                      </Badge>
+                    </div>
                     
                     {scanResult.picks?.length > 0 && (
                       <div>
                         <h4 className="text-green-600 font-medium mb-2">✅ Top Picks</h4>
                         <div className="space-y-2">
                           {scanResult.picks.map((item, idx) => (
-                            <div key={idx} className="p-3 border border-green-200 rounded-lg bg-green-50">
+                            <div key={idx} className="p-3 border border-green-200 rounded-lg bg-green-50 cursor-pointer hover:bg-green-100"
+                                 onClick={() => handleRecommendationTap(item)}>
                               <div className="flex justify-between items-start">
                                 <div>
                                   <p className="font-medium">{item.name}</p>
@@ -532,7 +635,8 @@ export default function FitbearApp() {
                         <h4 className="text-blue-600 font-medium mb-2">🔄 Good Alternatives</h4>
                         <div className="space-y-2">
                           {scanResult.alternates.map((item, idx) => (
-                            <div key={idx} className="p-3 border border-blue-200 rounded-lg bg-blue-50">
+                            <div key={idx} className="p-3 border border-blue-200 rounded-lg bg-blue-50 cursor-pointer hover:bg-blue-100"
+                                 onClick={() => handleRecommendationTap(item)}>
                               <div className="flex justify-between items-start">
                                 <div>
                                   <p className="font-medium">{item.name}</p>
@@ -582,7 +686,7 @@ export default function FitbearApp() {
             </Card>
           </TabsContent>
 
-          {/* Meal Photo Analyzer Tab - CRITICAL MISSING FEATURE */}
+          {/* Meal Photo Analyzer Tab */}
           <TabsContent value="photo">
             <Card>
               <CardHeader>
@@ -696,7 +800,7 @@ export default function FitbearApp() {
             </Card>
           </TabsContent>
 
-          {/* Coach Chat Tab */}
+          {/* Coach Chat Tab with Voice */}
           <TabsContent value="coach">
             <Card className="h-96 flex flex-col">
               <CardHeader>
@@ -726,26 +830,40 @@ export default function FitbearApp() {
                       }`}
                     >
                       <p className="text-sm">{msg.content}</p>
+                      {msg.role === 'assistant' && (
+                        <CoachSpeaker text={msg.content} autoSpeak={getFeatureFlag('enable_tts')} />
+                      )}
                     </div>
                   ))}
                 </div>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleCoachChat(currentMessage);
-                  }}
-                  className="flex space-x-2"
-                >
-                  <Input
-                    placeholder="Ask Coach C anything about nutrition..."
-                    value={currentMessage}
-                    onChange={(e) => setCurrentMessage(e.target.value)}
-                    disabled={loading}
-                  />
-                  <Button type="submit" disabled={loading || !currentMessage.trim()}>
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
-                  </Button>
-                </form>
+
+                {/* Voice Input Section */}
+                <div className="space-y-2">
+                  {getFeatureFlag('enable_stt') && (
+                    <VoiceButton 
+                      onTranscriptComplete={handleCoachChat}
+                      className="w-full"
+                    />
+                  )}
+                  
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleCoachChat(currentMessage);
+                    }}
+                    className="flex space-x-2"
+                  >
+                    <Input
+                      placeholder="Ask Coach C anything about nutrition..."
+                      value={currentMessage}
+                      onChange={(e) => setCurrentMessage(e.target.value)}
+                      disabled={loading}
+                    />
+                    <Button type="submit" disabled={loading || !currentMessage.trim()}>
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
+                    </Button>
+                  </form>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -812,8 +930,8 @@ export default function FitbearApp() {
                   </div>
                 )}
               </CardContent>
-            </Card>
-          </TabsContent>
+            </TabsContent>
+          </TabsList>
         </Tabs>
       </div>
     </div>
