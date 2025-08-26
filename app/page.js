@@ -12,6 +12,8 @@ import { Loader2, Camera, Utensils, MessageSquare, User, Scan, Activity, Setting
 import { useToast } from '@/components/ui/use-toast';
 import { VoiceButton, CoachSpeaker } from '@/components/VoiceButton';
 import { usePostHog } from '@/lib/hooks/usePostHog';
+import { FullBPSOnboarding } from '@/components/FullBPSOnboarding';
+import { SettingsPage } from '@/components/SettingsPage';
 
 export default function FitbearApp() {
   const [mounted, setMounted] = useState(false);
