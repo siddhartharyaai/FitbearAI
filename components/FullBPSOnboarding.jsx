@@ -85,47 +85,47 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
       }
       
       const tdeeData = await tdeeResponse.json();
-    
-    // Prepare profile data
-    const profileData = {
-      ...formData,
-      height_cm: parseInt(formData.height_cm) || 165,
-      weight_kg: parseFloat(formData.weight_kg) || 65,
-      waist_cm: parseInt(formData.waist_cm) || 80,
-      allergies_json: formData.allergies ? [formData.allergies] : [],
-      conditions_json: formData.conditions ? [formData.conditions] : [],
-      cuisines_json: formData.cuisines,
-      schedule_json: { preferred_meal_times: formData.schedule },
-      pantry_json: formData.pantry ? formData.pantry.split(',').map(item => item.trim()) : []
-    };
+      
+      // Prepare profile data
+      const profileData = {
+        ...formData,
+        height_cm: parseInt(formData.height_cm) || 165,
+        weight_kg: parseFloat(formData.weight_kg) || 65,
+        waist_cm: parseInt(formData.waist_cm) || 80,
+        allergies_json: formData.allergies ? [formData.allergies] : [],
+        conditions_json: formData.conditions ? [formData.conditions] : [],
+        cuisines_json: formData.cuisines,
+        schedule_json: { preferred_meal_times: formData.schedule },
+        pantry_json: formData.pantry ? formData.pantry.split(',').map(item => item.trim()) : []
+      };
 
-    // Prepare targets
-    const proteinMultiplier = formData.activity_level === 'active' || formData.activity_level === 'very_active' ? 1.4 : 1.0;
-    const targetsData = {
-      date: new Date().toISOString().split('T')[0],
-      tdee_kcal: tdeeData.tdee_kcal,
-      kcal_budget: Math.round(tdeeData.tdee_kcal * 0.9), // Slight deficit
-      protein_g: Math.round(formData.weight_kg * proteinMultiplier),
-      carb_g: Math.round((tdeeData.tdee_kcal * 0.45) / 4), // 45% carbs
-      fat_g: Math.round((tdeeData.tdee_kcal * 0.25) / 9), // 25% fats
-      fiber_g: 30,
-      sodium_mg: 2000,
-      water_ml: 2500,
-      steps: formData.activity_level === 'sedentary' ? 6000 : 8000
-    };
+      // Prepare targets
+      const proteinMultiplier = formData.activity_level === 'active' || formData.activity_level === 'very_active' ? 1.4 : 1.0;
+      const targetsData = {
+        date: new Date().toISOString().split('T')[0],
+        tdee_kcal: tdeeData.tdee_kcal,
+        kcal_budget: Math.round(tdeeData.tdee_kcal * 0.9), // Slight deficit
+        protein_g: Math.round(formData.weight_kg * proteinMultiplier),
+        carb_g: Math.round((tdeeData.tdee_kcal * 0.45) / 4), // 45% carbs
+        fat_g: Math.round((tdeeData.tdee_kcal * 0.25) / 9), // 25% fats
+        fiber_g: 30,
+        sodium_mg: 2000,
+        water_ml: 2500,
+        steps: formData.activity_level === 'sedentary' ? 6000 : 8000
+      };
 
-    track('onboarding_completed', {
-      dietary_preferences: {
-        veg: formData.veg_flag,
-        jain: formData.jain_flag,
-        halal: formData.halal_flag
-      },
-      activity_level: formData.activity_level,
-      locale: formData.locale
-    });
+      track('onboarding_completed', {
+        dietary_preferences: {
+          veg: formData.veg_flag,
+          jain: formData.jain_flag,
+          halal: formData.halal_flag
+        },
+        activity_level: formData.activity_level,
+        locale: formData.locale
+      });
 
-    onComplete(profileData, targetsData);
-    
+      onComplete(profileData, targetsData);
+      
     } catch (error) {
       console.error('Onboarding completion error:', error);
       alert(`Setup failed: ${error.message}. Please check your inputs and try again.`);
