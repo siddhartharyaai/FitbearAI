@@ -231,15 +231,14 @@ frontend:
 
 metadata:
   created_by: "testing_agent"
-  version: "1.0"
-  test_sequence: 1
+  version: "2.0"
+  test_sequence: 2
   run_ui: false
 
 test_plan:
   current_focus: []
   stuck_tasks:
     - "Menu Scanner Endpoint"
-    - "Coach Chat Endpoint"
   test_all: false
   test_priority: "high_first"
 
@@ -248,3 +247,5 @@ agent_communication:
     message: "Starting comprehensive backend testing for Fitbear AI. Will test all 4 main API endpoints with realistic Indian nutrition data."
   - agent: "testing"
     message: "Backend testing completed. Results: ✅ API Health Check working, ✅ TDEE Calculator working perfectly, ❌ Menu Scanner timeout due to OCR processing, ❌ Coach Chat API key expired. 2/4 core endpoints working correctly."
+  - agent: "testing"
+    message: "UPDATED TESTING COMPLETE: Tested updated Gemini API key and new backend endpoints. CRITICAL SUCCESS: ✅ Coach Chat now working with new API key, ✅ Meal Photo Analyzer (critical missing feature) fully functional, ✅ Food Logging System working, ✅ Profile Endpoints working, ✅ Targets Endpoint working. Fixed routing issue in GET handler. Only Menu Scanner still has OCR timeout issues. 6/7 major endpoints working correctly."
