@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Test the Fitbear AI backend functionality, specifically: API Health Check, Menu Scanner Endpoint, Coach Chat Endpoint, and TDEE Calculator"
+user_problem_statement: "Test the updated Gemini API key and new backend endpoints: Coach Chat with New API Key, New Meal Photo Analyzer, Food Logging System, Profile Endpoints, and Targets Endpoint"
 
 backend:
   - task: "API Health Check"
@@ -137,9 +137,9 @@ backend:
 
   - task: "Coach Chat Endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/app/api/[[...path]]/route.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
@@ -149,6 +149,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ FAIL: Gemini API key expired - returns 500 error 'API key expired. Please renew the API key.' Code structure and integration is correct, but requires valid API key configuration."
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS: Coach Chat working with updated Gemini API key! Tested with realistic vegetarian muscle gain question. AI responded with 741 characters of contextual Indian nutrition advice including dal, paneer, roti recommendations with proper portions (katori measurements). API key issue resolved."
 
   - task: "TDEE Calculator"
     implemented: true
@@ -164,6 +167,54 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ PASS: TDEE calculator working perfectly - Harris-Benedict equation implemented correctly. Male 28y/175cm/70kg/moderate = 2646 kcal (expected 2200-2800). Female 25y/160cm/55kg/light = 1847 kcal (expected 1600-2100). All calculations accurate."
+
+  - task: "Meal Photo Analyzer"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS: CRITICAL FEATURE WORKING! Meal Photo Analyzer (/api/food/analyze) successfully analyzes meal photos using Gemini Vision AI. Returns food guesses with confidence scores (Dal Tadka: 0.80, Plain Rice: 0.70, Roti: 0.60), portion hints, and nutrition estimates. This was the missing feature that was overlooked - now fully functional."
+
+  - task: "Food Logging System"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS: Food Logging System working perfectly. POST /api/logs successfully logs food entries with idempotency keys (logged dal tadka 1.5 katori = 270 calories). GET /api/logs retrieves food logs correctly. Proper macro calculations and portion handling implemented."
+
+  - task: "Profile Endpoints"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS: Profile endpoints working correctly. GET /api/me and GET /api/me/profile both return user profile data (Demo User, 165cm, 65kg, vegetarian, moderate activity). PUT /api/me/profile endpoint available for profile updates."
+
+  - task: "Targets Endpoint"
+    implemented: true
+    working: true
+    file: "/app/app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS: Targets endpoint working correctly. GET /api/me/targets returns daily nutrition targets (TDEE: 2200 kcal, budget: 1800 kcal, protein: 110g, carbs: 200g, fat: 60g, fiber: 30g, water: 2500ml, steps: 8000). PUT endpoint available for target updates. Fixed routing issue in GET handler."
 
 frontend:
   - task: "Frontend UI Integration"
