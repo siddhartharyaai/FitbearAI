@@ -99,18 +99,42 @@ function getRecommendations(items, profile) {
   };
 }
 
-// OCR processing
+// OCR processing with timeout and optimization
 async function processMenuImage(imageBuffer) {
   try {
-    const worker = await createWorker('eng+hin');
-    const { data: { text } } = await worker.recognize(imageBuffer);
-    await worker.terminate();
+    // Implement timeout for OCR processing
+    const OCR_TIMEOUT = 15000; // 15 seconds max
     
-    return text;
+    const ocrPromise = (async () => {
+      const worker = await createWorker('eng+hin', 1, {
+        logger: m => console.log(m) // Optional: remove in production
+      });
+      
+      // Optimize worker configuration
+      await worker.setParameters({
+        tessedit_page_seg_mode: '6', // Uniform block of text
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .-',
+      });
+      
+      const { data: { text } } = await worker.recognize(imageBuffer);
+      await worker.terminate();
+      
+      return text;
+    })();
+    
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('OCR processing timed out')), OCR_TIMEOUT)
+    );
+    
+    const result = await Promise.race([ocrPromise, timeoutPromise]);
+    return result;
+    
   } catch (error) {
     console.error('OCR Error:', error);
-    // Fallback with mock data for demo
-    return "Dal Tadka\nPaneer Tikka\nButter Chicken\nBiryani\nRoti\nNaan\nSamosa\nChole\nRice\nDosa";
+    
+    // Fallback with mock data for demo when OCR fails/times out
+    console.log('Using fallback mock menu data due to OCR timeout/error');
+    return "Dal Tadka\nPaneer Tikka\nButter Chicken\nVegetable Biryani\nRoti\nNaan\nSamosa\nChole\nRice\nMasala Dosa\nIdli\nUpma";
   }
 }
 
