@@ -23,6 +23,7 @@ export default function FitbearApp() {
   const [foodLogs, setFoodLogs] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
+  const [mode, setMode] = useState('Demo'); // Demo | Production
   
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fqhffciiaztcycvvwrnd.supabase.co',
