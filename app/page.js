@@ -44,6 +44,12 @@ export default function FitbearApp() {
 
   useEffect(() => {
     setMounted(true);
+    // Check for remembered email
+    const savedEmail = localStorage.getItem('fitbear_remember_email');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
   }, []);
 
   useEffect(() => {
