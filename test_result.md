@@ -107,51 +107,63 @@ user_problem_statement: "Test the Fitbear AI backend functionality, specifically
 backend:
   - task: "API Health Check"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing setup - GET /api/ endpoint needs verification"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS: Health check successful - GET /api returns correct Fitbear AI message with 200 status"
 
   - task: "Menu Scanner Endpoint"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/app/api/[[...path]]/route.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing setup - POST /api/menu/scan with OCR and food recommendations needs verification"
+      - working: false
+        agent: "testing"
+        comment: "❌ FAIL: OCR processing with Tesseract.js hangs and times out after 90+ seconds. Code structure is correct with fallback mechanism, but OCR initialization appears to be stuck. Endpoint accepts image uploads correctly."
 
   - task: "Coach Chat Endpoint"
     implemented: true
-    working: "NA"
+    working: false
     file: "/app/app/api/[[...path]]/route.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing setup - POST /api/coach/ask with Gemini AI integration needs verification"
+      - working: false
+        agent: "testing"
+        comment: "❌ FAIL: Gemini API key expired - returns 500 error 'API key expired. Please renew the API key.' Code structure and integration is correct, but requires valid API key configuration."
 
   - task: "TDEE Calculator"
     implemented: true
-    working: "NA"
+    working: true
     file: "/app/app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "Initial testing setup - POST /api/tools/tdee with body measurements needs verification"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASS: TDEE calculator working perfectly - Harris-Benedict equation implemented correctly. Male 28y/175cm/70kg/moderate = 2646 kcal (expected 2200-2800). Female 25y/160cm/55kg/light = 1847 kcal (expected 1600-2100). All calculations accurate."
 
 frontend:
   - task: "Frontend UI Integration"
