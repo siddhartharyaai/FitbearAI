@@ -559,6 +559,120 @@ export default function FitbearApp() {
             </Card>
           </TabsContent>
 
+          {/* Meal Photo Analyzer Tab - CRITICAL MISSING FEATURE */}
+          <TabsContent value="photo">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Camera className="w-5 h-5" />
+                  <span>Meal Photo Analyzer</span>
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Take a photo of your meal to get instant nutrition analysis and log it
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-green-500 transition-colors cursor-pointer">
+                      <Camera className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <p className="text-sm text-muted-foreground">
+                        Click to take meal photo or upload existing image
+                      </p>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => handlePhotoAnalysis(e.target.files[0])}
+                      />
+                    </div>
+                  </label>
+                </div>
+
+                {loading && (
+                  <div className="text-center">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                    <p className="text-sm text-muted-foreground mt-2">Analyzing your meal...</p>
+                  </div>
+                )}
+
+                {photoAnalysis && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">What I detected in your meal:</h3>
+                    
+                    {photoAnalysis.guess?.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-green-600 font-medium">🍽️ Food Items Detected</h4>
+                        {photoAnalysis.guess.map((item, idx) => (
+                          <div key={idx} className="p-4 border border-green-200 rounded-lg bg-green-50">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-sm text-gray-600">
+                                  Confidence: {(item.confidence * 100).toFixed(0)}%
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleLogFood({ 
+                                    food_id: item.food_id || item.name.toLowerCase().replace(' ', '-'),
+                                    portion_qty: 1,
+                                    portion_unit: 'serving'
+                                  })}
+                                >
+                                  Log This Item
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {photoAnalysis.question && (
+                      <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+                        <h4 className="text-blue-600 font-medium mb-2">❓ Quick Question</h4>
+                        <p className="text-sm">{photoAnalysis.question}</p>
+                      </div>
+                    )}
+
+                    {photoAnalysis.portion_hint && (
+                      <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <p className="text-sm text-gray-600">
+                          <strong>Portion estimate:</strong> {photoAnalysis.portion_hint}
+                        </p>
+                      </div>
+                    )}
+
+                    {photoAnalysis.on_confirm && (
+                      <div className="p-4 border border-purple-200 rounded-lg bg-purple-50">
+                        <h4 className="text-purple-600 font-medium mb-2">📊 Estimated Nutrition</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>Calories: <strong>{photoAnalysis.on_confirm.calories}</strong></div>
+                          <div>Protein: <strong>{photoAnalysis.on_confirm.protein_g}g</strong></div>
+                          <div>Carbs: <strong>{photoAnalysis.on_confirm.carb_g}g</strong></div>
+                          <div>Fat: <strong>{photoAnalysis.on_confirm.fat_g}g</strong></div>
+                        </div>
+                        <Button 
+                          className="mt-3 w-full"
+                          onClick={() => handleLogFood({ 
+                            food_id: 'analyzed-meal',
+                            portion_qty: 1,
+                            portion_unit: 'meal'
+                          })}
+                        >
+                          Log Complete Meal ({photoAnalysis.on_confirm.calories} cal)
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Coach Chat Tab */}
           <TabsContent value="coach">
             <Card className="h-96 flex flex-col">
