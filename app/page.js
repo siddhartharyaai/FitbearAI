@@ -932,7 +932,6 @@ export default function FitbearApp() {
               </CardContent>
             </Card>
           </TabsContent>
-          </TabsList>
         </Tabs>
       </div>
     </div>
