@@ -427,7 +427,14 @@ export default function FitbearApp() {
         }),
       });
       
-      const result = await response.json();
+      // Check response status first
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Logging failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      const responseText = await response.text();
+      const result = JSON.parse(responseText);
       
       if (!response.ok) throw new Error(result.error?.message || 'Logging failed');
       
