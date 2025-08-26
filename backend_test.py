@@ -14,7 +14,7 @@ import sys
 import time
 
 # Get the base URL from environment
-BASE_URL = "http://localhost:3000/api"
+BASE_URL = "https://healthpulse-21.preview.emergentagent.com/api"
 
 def create_test_image():
     """Create a simple test image with menu text for OCR testing"""
