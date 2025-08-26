@@ -19,6 +19,8 @@ export default function FitbearApp() {
   const [step, setStep] = useState('login'); // login, verify, onboarding, app
   const [profile, setProfile] = useState(null);
   const [scanResult, setScanResult] = useState(null);
+  const [photoAnalysis, setPhotoAnalysis] = useState(null);
+  const [foodLogs, setFoodLogs] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
   
