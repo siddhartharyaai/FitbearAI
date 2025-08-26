@@ -14,7 +14,15 @@ import sys
 import time
 
 # Get the base URL from environment
-BASE_URL = "http://localhost:3000/api"
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Use the production URL from environment
+NEXT_PUBLIC_BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://healthpulse-21.preview.emergentagent.com')
+BASE_URL = f"{NEXT_PUBLIC_BASE_URL}/api"
 
 def create_test_image():
     """Create a simple test image with menu text for OCR testing"""
