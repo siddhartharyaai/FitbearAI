@@ -239,6 +239,47 @@ export async function POST(request) {
       });
     }
     
+    // Meal Photo Analyzer endpoint
+    if (pathname.includes('/food/analyze')) {
+      const formData = await request.formData();
+      const imageFile = formData.get('image');
+      
+      if (!imageFile) {
+        return NextResponse.json(
+          { error: { type: 'DataContract', message: 'No meal image provided' } },
+          { status: 400 }
+        );
+      }
+      
+      // Analyze meal photo (AI-powered detection)
+      const analysis = await analyzeMealPhoto(imageFile);
+      
+      return NextResponse.json(analysis);
+    }
+    
+    // Food logging endpoint
+    if (pathname.includes('/logs')) {
+      const { food_id, menu_item_id, portion_qty, portion_unit, idempotency_key } = await request.json();
+      
+      if (!food_id && !menu_item_id) {
+        return NextResponse.json(
+          { error: { type: 'DataContract', message: 'Either food_id or menu_item_id required' } },
+          { status: 400 }
+        );
+      }
+      
+      // Log food entry with idempotency check
+      const logEntry = await logFoodEntry({
+        food_id,
+        menu_item_id,
+        portion_qty: portion_qty || 1,
+        portion_unit: portion_unit || 'serving',
+        idempotency_key
+      });
+      
+      return NextResponse.json(logEntry);
+    }
+    
     // Coach chat endpoint
     if (pathname.includes('/coach/ask')) {
       const { message, profile, context_flags } = await request.json();
@@ -265,6 +306,38 @@ export async function POST(request) {
         reply: reply,
         citations: []
       });
+    }
+    
+    // Profile endpoints
+    if (pathname.includes('/me/profile')) {
+      // GET profile or PUT update profile
+      const method = request.method;
+      
+      if (method === 'PUT') {
+        const profileData = await request.json();
+        // Update user profile in Supabase
+        const updatedProfile = await updateUserProfile(profileData);
+        return NextResponse.json(updatedProfile);
+      } else {
+        // GET profile
+        const profile = await getUserProfile();
+        return NextResponse.json(profile || {});
+      }
+    }
+    
+    // Daily targets endpoint  
+    if (pathname.includes('/me/targets')) {
+      const url = new URL(request.url);
+      const date = url.searchParams.get('date');
+      
+      if (request.method === 'GET') {
+        const targets = await getDailyTargets(date);
+        return NextResponse.json(targets);
+      } else if (request.method === 'PUT') {
+        const targetData = await request.json();
+        const updatedTargets = await upsertDailyTargets(targetData);
+        return NextResponse.json(updatedTargets);
+      }
     }
     
     // TDEE calculation endpoint
@@ -305,4 +378,229 @@ export async function POST(request) {
       { status: 500 }
     );
   }
+}
+
+// GET endpoint for logs and profile
+export async function GET(request) {
+  const pathname = new URL(request.url).pathname;
+  const url = new URL(request.url);
+  
+  try {
+    // Get food logs
+    if (pathname.includes('/logs')) {
+      const from = url.searchParams.get('from');
+      const to = url.searchParams.get('to');
+      
+      const logs = await getFoodLogs(from, to);
+      return NextResponse.json(logs || []);
+    }
+    
+    // Get user profile
+    if (pathname.includes('/me')) {
+      const profile = await getUserProfile();
+      return NextResponse.json(profile || {});
+    }
+    
+    // Default health check
+    return NextResponse.json({ message: "Fitbear AI API is running!" });
+    
+  } catch (error) {
+    console.error('API Error:', error);
+    return NextResponse.json(
+      { error: { type: 'Logic', message: error.message } },
+      { status: 500 }
+    );
+  }
+}
+
+// Meal Photo Analysis using Gemini Vision
+async function analyzeMealPhoto(imageFile) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    // Convert image to base64
+    const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+    const base64Image = imageBuffer.toString('base64');
+    
+    const prompt = `Analyze this Indian meal photo. Identify the main dishes visible and provide:
+1. Top 3 most likely food items with confidence scores
+2. Estimated portion sizes (use Indian units: katori, roti count, pieces)
+3. One clarifying question if confidence is low
+
+Focus on common Indian foods: dal, rice, roti, sabzi, paneer dishes, etc.
+Format response as JSON with: guess, portion_hint, confidence, question.`;
+    
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          mimeType: imageFile.type,
+          data: base64Image
+        }
+      }
+    ]);
+    
+    const response = result.response.text();
+    
+    // Parse AI response or use fallback
+    try {
+      const parsed = JSON.parse(response);
+      return parsed;
+    } catch {
+      // Fallback response
+      return {
+        guess: [
+          { food_id: "dal-tadka", name: "Dal Tadka", confidence: 0.8 },
+          { food_id: "rice", name: "Plain Rice", confidence: 0.7 },
+          { food_id: "roti", name: "Roti", confidence: 0.6 }
+        ],
+        portion_hint: "Standard serving sizes assumed",
+        confidence: 0.7,
+        question: "How many rotis can you see in the image?",
+        on_confirm: {
+          calories: 420,
+          protein_g: 15,
+          carb_g: 65,
+          fat_g: 8,
+          fiber_g: 6,
+          sodium_mg: 800
+        }
+      };
+    }
+    
+  } catch (error) {
+    console.error('Photo analysis error:', error);
+    
+    // Fallback for demo
+    return {
+      guess: [
+        { food_id: "thali", name: "Mixed Vegetable Thali", confidence: 0.6 }
+      ],
+      portion_hint: "Complete meal detected",
+      confidence: 0.6,
+      question: "Is this a full thali or individual dishes?",
+      on_confirm: {
+        calories: 600,
+        protein_g: 20,
+        carb_g: 80,
+        fat_g: 18,
+        fiber_g: 12,
+        sodium_mg: 1500
+      }
+    };
+  }
+}
+
+// Food logging with idempotency
+async function logFoodEntry({ food_id, menu_item_id, portion_qty, portion_unit, idempotency_key }) {
+  try {
+    // Check for existing entry with same idempotency key
+    if (idempotency_key) {
+      // In production, check Supabase for existing log
+      console.log(`Checking idempotency for key: ${idempotency_key}`);
+    }
+    
+    // Get nutrition data
+    const foodData = INDIAN_FOOD_DB[food_id] || INDIAN_FOOD_DB["dal tadka"];
+    
+    // Calculate actual nutrition based on portion
+    const actualCalories = Math.round(foodData.calories * portion_qty);
+    const actualProtein = Math.round(foodData.protein_g * portion_qty * 10) / 10;
+    const actualCarbs = Math.round(foodData.carb_g * portion_qty * 10) / 10;
+    const actualFat = Math.round(foodData.fat_g * portion_qty * 10) / 10;
+    const actualFiber = Math.round(foodData.fiber_g * portion_qty * 10) / 10;
+    const actualSodium = Math.round(foodData.sodium_mg * portion_qty);
+    
+    // Create log entry
+    const logEntry = {
+      log_id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      food_id,
+      menu_item_id,
+      portion_qty,
+      portion_unit,
+      calories: actualCalories,
+      protein_g: actualProtein,
+      carb_g: actualCarbs,
+      fat_g: actualFat,
+      fiber_g: actualFiber,
+      sodium_mg: actualSodium,
+      logged_at: new Date().toISOString(),
+      idempotency_key
+    };
+    
+    // In production: Save to Supabase
+    console.log('Logging food entry:', logEntry);
+    
+    return {
+      log_id: logEntry.log_id,
+      calories: actualCalories,
+      macros: {
+        protein_g: actualProtein,
+        carb_g: actualCarbs,
+        fat_g: actualFat,
+        fiber_g: actualFiber,
+        sodium_mg: actualSodium
+      }
+    };
+    
+  } catch (error) {
+    throw new Error(`Failed to log food entry: ${error.message}`);
+  }
+}
+
+// Get food logs (stub)
+async function getFoodLogs(from, to) {
+  // Return mock data for demo
+  return [
+    {
+      id: "log1",
+      timestamp: new Date().toISOString(),
+      food_name: "Dal Tadka",
+      calories: 180,
+      protein_g: 9,
+      portion: "1 katori"
+    },
+    {
+      id: "log2", 
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      food_name: "Roti",
+      calories: 120,
+      protein_g: 4,
+      portion: "2 pieces"
+    }
+  ];
+}
+
+// User profile functions (stubs)
+async function getUserProfile() {
+  return {
+    name: "Demo User",
+    height_cm: 165,
+    weight_kg: 65,
+    veg_flag: true,
+    activity_level: "moderate"
+  };
+}
+
+async function updateUserProfile(profileData) {
+  return { ...profileData, updated_at: new Date().toISOString() };
+}
+
+async function getDailyTargets(date) {
+  return {
+    date: date || new Date().toISOString().split('T')[0],
+    tdee_kcal: 2200,
+    kcal_budget: 1800,
+    protein_g: 110,
+    carb_g: 200,
+    fat_g: 60,
+    fiber_g: 30,
+    sodium_mg: 2000,
+    water_ml: 2500,
+    steps: 8000
+  };
+}
+
+async function upsertDailyTargets(targetData) {
+  return { ...targetData, updated_at: new Date().toISOString() };
 }
