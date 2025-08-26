@@ -243,8 +243,7 @@ metadata:
 
 test_plan:
   current_focus: []
-  stuck_tasks:
-    - "Menu Scanner Endpoint"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
