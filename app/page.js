@@ -343,55 +343,50 @@ export default function FitbearApp() {
     );
   }
 
-  // Render onboarding (simplified for MVP)
+  // Render onboarding (BPS)
   if (step === 'onboarding') {
-    const completeOnboarding = async () => {
-      setLoading(true);
-      try {
-        // Create basic profile
-        const { error } = await supabase
-          .from('profiles')
-          .insert([{
-            user_id: user.id,
-            name: user.email?.split('@')[0] || 'User',
-            height_cm: 165,
-            weight_kg: 65,
-            activity_level: 'moderate',
-            veg_flag: true,
-            locale: 'en'
-          }]);
-        
-        if (error) throw error;
-        
-        await getProfile();
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>Welcome to Fitbear!</CardTitle>
-            <p className="text-sm text-muted-foreground">Let's set up your profile</p>
-          </CardHeader>
-          <CardContent className="text-center space-y-4">
-            <p>For this demo, we'll use default settings.</p>
-            <p className="text-sm text-muted-foreground">Full onboarding coming soon!</p>
-            <Button onClick={completeOnboarding} disabled={loading} className="w-full">
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Continue
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <FullBPSOnboarding
+        onComplete={async (profileData, targetsData) => {
+          setLoading(true);
+          try {
+            // Save profile
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert([{ user_id: user.id, ...profileData }]);
+            
+            if (profileError) throw profileError;
+
+            // Save targets
+            const targetsResponse = await fetch('/api/me/targets', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: user.id, ...targetsData })
+            });
+
+            if (!targetsResponse.ok) throw new Error('Failed to save targets');
+
+            track('onboarding_completed', {
+              dietary_preferences: {
+                veg: profileData.veg_flag,
+                jain: profileData.jain_flag,
+                halal: profileData.halal_flag
+              }
+            });
+
+            await getProfile();
+          } catch (error) {
+            toast({
+              title: "Setup Error",
+              description: error.message,
+              variant: "destructive",
+            });
+          } finally {
+            setLoading(false);
+          }
+        }}
+        loading={loading}
+      />
     );
   }
 
