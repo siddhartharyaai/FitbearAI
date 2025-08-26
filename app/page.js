@@ -32,14 +32,22 @@ export default function FitbearApp() {
   );
   const { toast } = useToast();
 
-  // Hydration guard
   useEffect(() => {
     setMounted(true);
-  }, []);
-
-  useEffect(() => {
     getProfile();
   }, []);
+
+  // Prevent hydration mismatch by not rendering until client-side
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-green-600" />
+          <p className="text-green-700">Loading Fitbear AI...</p>
+        </div>
+      </div>
+    );
+  }
 
   const getProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
