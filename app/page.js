@@ -141,6 +141,89 @@ export default function FitbearApp() {
     }
   };
 
+  const handlePhotoAnalysis = async (file) => {
+    if (!file) return;
+    
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/food/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) throw new Error(result.error?.message || 'Analysis failed');
+      
+      setPhotoAnalysis(result);
+      toast({
+        title: "Meal Analyzed!",
+        description: `Detected ${result.guess?.length || 0} food items.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Analysis Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogFood = async (foodData) => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...foodData,
+          idempotency_key: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) throw new Error(result.error?.message || 'Logging failed');
+      
+      toast({
+        title: "Food Logged!",
+        description: `${result.calories} calories added to your diary.`,
+      });
+      
+      // Refresh food logs
+      await loadFoodLogs();
+    } catch (error) {
+      toast({
+        title: "Logging Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadFoodLogs = async () => {
+    try {
+      const response = await fetch('/api/logs');
+      const logs = await response.json();
+      setFoodLogs(logs || []);
+    } catch (error) {
+      console.error('Failed to load food logs:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (user && profile) {
+      loadFoodLogs();
+    }
+  }, [user, profile]);
+
   const handleCoachChat = async (message) => {
     if (!message.trim()) return;
     
