@@ -193,9 +193,7 @@ If the user requests unsafe methods, decline and offer evidence-based alternativ
 
 Keep responses conversational and under 150 words.`;
 
-export async function GET(request) {
-  return NextResponse.json({ message: "Fitbear AI API is running!" });
-}
+
 
 export async function POST(request) {
   const pathname = new URL(request.url).pathname;
