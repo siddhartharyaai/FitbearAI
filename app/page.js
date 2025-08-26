@@ -737,11 +737,57 @@ export default function FitbearApp() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center text-muted-foreground py-8">
-                  <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Food logging and history coming soon!</p>
-                  <p className="text-sm">This will track your daily nutrition and progress.</p>
-                </div>
+                {foodLogs.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-semibold">Today's Meals</h3>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={loadFoodLogs}
+                      >
+                        Refresh
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {foodLogs.map((log, idx) => (
+                        <div key={idx} className="p-4 border rounded-lg bg-white">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">{log.food_name}</p>
+                              <p className="text-sm text-gray-600">
+                                {log.portion} • {new Date(log.timestamp).toLocaleTimeString()}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-green-600">{log.calories} kcal</p>
+                              <p className="text-xs text-gray-500">{log.protein_g}g protein</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-green-50 rounded-lg">
+                      <h4 className="font-semibold text-green-800 mb-2">Today's Summary</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <p>Total Calories: <strong>{foodLogs.reduce((sum, log) => sum + log.calories, 0)}</strong></p>
+                        </div>
+                        <div>
+                          <p>Total Protein: <strong>{foodLogs.reduce((sum, log) => sum + log.protein_g, 0).toFixed(1)}g</strong></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No food logged yet today.</p>
+                    <p className="text-sm">Use Menu Scanner or Meal Photo to start logging your meals!</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
