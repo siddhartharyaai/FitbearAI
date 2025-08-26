@@ -122,9 +122,9 @@ backend:
 
   - task: "Menu Scanner Endpoint"
     implemented: true
-    working: false
+    working: true
     file: "/app/app/api/[[...path]]/route.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
@@ -134,6 +134,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "❌ FAIL: OCR processing with Tesseract.js hangs and times out after 90+ seconds. Code structure is correct with fallback mechanism, but OCR initialization appears to be stuck. Endpoint accepts image uploads correctly."
+      - working: true
+        agent: "testing"
+        comment: "✅ CRITICAL FIX RESOLVED: Menu Scanner now uses Gemini Vision OCR instead of Tesseract.js! Processing time reduced from 90+ seconds timeout to 0.91 seconds. Successfully extracts Indian food items (Dal Tadka, Paneer Tikka, Biryani) and generates recommendations. Fallback mechanism working perfectly. No more timeout issues!"
 
   - task: "Coach Chat Endpoint"
     implemented: true
