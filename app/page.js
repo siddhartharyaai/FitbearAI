@@ -314,10 +314,14 @@ export default function FitbearApp() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="scanner" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="scanner" className="flex items-center space-x-2">
               <Scan className="w-4 h-4" />
               <span>Menu Scanner</span>
+            </TabsTrigger>
+            <TabsTrigger value="photo" className="flex items-center space-x-2">
+              <Camera className="w-4 h-4" />
+              <span>Meal Photo</span>
             </TabsTrigger>
             <TabsTrigger value="coach" className="flex items-center space-x-2">
               <MessageSquare className="w-4 h-4" />
