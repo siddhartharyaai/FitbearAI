@@ -393,6 +393,13 @@ export async function GET(request) {
       return NextResponse.json(logs || []);
     }
     
+    // Get daily targets
+    if (pathname.includes('/me/targets')) {
+      const date = url.searchParams.get('date');
+      const targets = await getDailyTargets(date);
+      return NextResponse.json(targets);
+    }
+    
     // Get user profile
     if (pathname.includes('/me')) {
       const profile = await getUserProfile();
