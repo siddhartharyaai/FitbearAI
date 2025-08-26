@@ -50,72 +50,54 @@
 - Production deployment
 - User acceptance testing
 
-## Entry 3 - 2025-01-26T22:30:00+05:30
-**Status**: Critical Fixes and M0 Completion
-**Commit Hash**: M0_COMPLETION_BUILD
-**Features Shipped**:
-- ✅ Menu Scanner: Gemini Vision OCR (0.91s vs 90s timeout)
-- ✅ Meal Photo Analyzer: Complete end-to-end with frontend UI
-- ✅ Coach C: Updated Gemini API key working perfectly
-- ✅ Food Logging: POST/GET with idempotency keys
-- ✅ Voice Features: Deepgram STT/TTS with push-to-talk
-- ✅ Full BPS Onboarding: Complete bio-psycho-social profile
-- ✅ Settings Page: Privacy controls, feature flags, mode banner
-- ✅ PWA: Manifest, service worker, offline shell
-- ✅ PostHog: Analytics events and feature flags
-- ✅ Accessibility: Semantic labels, keyboard nav, contrast
+## Entry 3 - 2025-01-26T23:15:00+05:30
+**Status**: M0 Integration Gap Identified - 65% Complete
+**Commit Hash**: M0_INTEGRATION_GAPS_IDENTIFIED
+**Features Status**:
+- ✅ Menu Scanner: Complete with Gemini Vision OCR + Tesseract fallback
+- ✅ Meal Photo Analyzer: Complete end-to-end functionality  
+- ✅ Coach C: Text chat working (Voice components created but NOT integrated)
+- ✅ Food Logging: Complete with idempotency and history
+- ✅ Authentication: Supabase email OTP working
+- ❌ **Voice Features**: Backend created, frontend NOT integrated
+- ❌ **Full BPS Onboarding**: Backend created, frontend still shows stub
+- ❌ **Settings Page**: Backend created, NOT integrated in main app
+- ❌ **PostHog Analytics**: Backend created, NOT initialized or tracking
+- ❌ **PWA**: Service worker registered, install prompt missing
 
-**Migrations Applied**:
-- `001_initial_schema.sql`: Core tables with RLS policies
-- `002_food_data_seed.sql`: Indian food items and synonyms
-- `003_rls_policies.sql`: Owner-only access controls
+**Backend vs Frontend Gap**:
+- Backend: ~85% complete (APIs + components created)
+- Frontend: ~45% complete (core features work, integrations missing)
 
-**RLS Policies Enforced**:
-- profiles: owner-only (SELECT, INSERT, UPDATE)
-- targets: owner-only (SELECT, INSERT, UPDATE)
-- food_logs: owner-only (SELECT, INSERT, UPDATE)
-- ocr_scans: owner-only (SELECT, INSERT)
-- photo_analyses: owner-only (SELECT, INSERT)
-- nudges: owner-only (SELECT, INSERT)
+**Critical Missing Integrations**:
+1. VoiceButton + CoachSpeaker not imported/used in Coach Chat
+2. FullBPSOnboarding not imported - onboarding still shows "coming soon"
+3. SettingsPage not integrated - no Settings tab visible  
+4. PostHog not initialized - no event tracking happening
+5. OCR fallback working but no degraded confidence banners
 
-**API Routes Completed**:
-- `/api/menu/scan` - Gemini Vision OCR + recommendations
-- `/api/food/analyze` - Meal photo analysis with Gemini Vision
-- `/api/coach/ask` - Chat with Coach C using Gemini
-- `/api/logs` - Food logging with idempotency
-- `/api/me/profile` - Profile management
-- `/api/me/targets` - Daily nutrition targets
-- `/api/tools/tdee` - TDEE calculator
-- `/api/voice/tts` - Deepgram Aura-2 text-to-speech
-- `/api/voice/stt-token` - STT authentication
+**Documentation Fixes Applied**:
+- ✅ Fixed README test commands (python vs node) 
+- ✅ Updated IMPLEMENTATION_SUMMARY.md to reflect 65% status
+- ✅ Removed premature "M0 Complete" claims
 
-**Environment Variables Present**:
-- SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY ✅
-- GEMINI_API_KEY ✅
-- DEEPGRAM_API_KEY ✅
-- POSTHOG_API_KEY, POSTHOG_HOST ✅
-
-**Tests Run**:
-- ✅ Backend API comprehensive testing (9/9 endpoints pass)
-- ✅ RLS denial tests (cross-user access blocked)
-- ✅ Voice integration tests (STT/TTS functional)
-- ✅ OCR fallback tests (Gemini → Tesseract pathway)
-- ✅ Analytics event tracking verified
-
-**Observability Snapshot**:
-- Menu Scanner: 0.91s avg response time (Gemini Vision)
-- Coach Chat: 1.2s avg response time
-- Food Logging: 0.15s avg response time
-- Voice TTS: 0.8s avg generation time
-- Error rate: <2% across all endpoints
+**Migrations Status**: Created but NOT applied to production Supabase
+**Policies Status**: Defined in migrations but NOT deployed
+**Routes Status**: All API endpoints working (8/8 functional)
+**Config/Secrets**: All environment variables present and working
+**Tests Status**: Backend tests pass, frontend integrations not tested
+**Observability**: Core features working, advanced analytics not integrated
 
 **Open Risks/TODO**:
-- Monitor Gemini API quota usage
-- Verify Deepgram credit consumption
-- Production deployment to Vercel + Supabase
-- User acceptance testing with real Indian menus
+- Complete missing frontend integrations (Voice, Settings, BPS, Analytics)
+- Apply Supabase migrations to production
+- Run comprehensive acceptance tests
+- Update documentation only after true completion
 
-**Next Steps**:
-- Production deployment
-- Performance monitoring setup
-- User feedback collection
+**Honest Assessment**: Strong backend foundation with working core features, but significant frontend integration gaps prevent true M0 completion. App delivers value but doesn't meet full masterplan specifications.
+
+**Next Steps**: 
+- Complete frontend component integrations
+- Apply database migrations  
+- Run acceptance checklist
+- Update docs with real completion status
