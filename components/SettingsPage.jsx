@@ -61,8 +61,16 @@ export function SettingsPage({ profile, onUpdateProfile, onBack, mode, onModeCha
           dietary_preferences: dietaryFlags,
           locale: language
         },
-        targets: await fetch('/api/me/targets').then(r => r.json()).catch(() => ({})),
-        food_logs: await fetch('/api/logs').then(r => r.json()).catch(() => []),
+        targets: await fetch('/api/me/targets').then(async r => {
+          if (!r.ok) return {};
+          const text = await r.text();
+          try { return JSON.parse(text); } catch { return {}; }
+        }).catch(() => ({})),
+        food_logs: await fetch('/api/logs').then(async r => {
+          if (!r.ok) return [];
+          const text = await r.text();
+          try { return JSON.parse(text); } catch { return []; }
+        }).catch(() => []),
         exported_at: new Date().toISOString()
       };
 
