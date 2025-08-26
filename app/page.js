@@ -458,10 +458,35 @@ export default function FitbearApp() {
   const loadFoodLogs = async () => {
     try {
       const response = await fetch('/api/logs');
-      const logs = await response.json();
-      setFoodLogs(logs || []);
+      
+      // Check if response is ok before parsing JSON
+      if (!response.ok) {
+        console.error(`Failed to load food logs: ${response.status} ${response.statusText}`);
+        setFoodLogs([]);
+        return;
+      }
+      
+      // Get response as text first to check if it's valid JSON
+      const responseText = await response.text();
+      
+      if (!responseText || responseText.trim() === '') {
+        console.warn('Empty response from food logs API');
+        setFoodLogs([]);
+        return;
+      }
+      
+      try {
+        const logs = JSON.parse(responseText);
+        setFoodLogs(logs || []);
+      } catch (parseError) {
+        console.error('Failed to parse food logs JSON:', parseError);
+        console.error('Response text was:', responseText);
+        setFoodLogs([]);
+      }
+      
     } catch (error) {
       console.error('Failed to load food logs:', error);
+      setFoodLogs([]);
     }
   };
 
