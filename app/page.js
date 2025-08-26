@@ -441,7 +441,7 @@ export default function FitbearApp() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="scanner" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="scanner" className="flex items-center space-x-2">
               <Scan className="w-4 h-4" />
               <span>Menu Scanner</span>
@@ -457,6 +457,10 @@ export default function FitbearApp() {
             <TabsTrigger value="history" className="flex items-center space-x-2">
               <Activity className="w-4 h-4" />
               <span>History</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center space-x-2">
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
             </TabsTrigger>
           </TabsList>
 
