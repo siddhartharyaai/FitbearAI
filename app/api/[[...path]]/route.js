@@ -99,42 +99,49 @@ function getRecommendations(items, profile) {
   };
 }
 
-// OCR processing with timeout and optimization
+// Menu OCR processing using Gemini Vision (replacing Tesseract.js)
 async function processMenuImage(imageBuffer) {
   try {
-    // Implement timeout for OCR processing
-    const OCR_TIMEOUT = 15000; // 15 seconds max
+    console.log('Processing menu image with Gemini Vision OCR...');
     
-    const ocrPromise = (async () => {
-      const worker = await createWorker('eng+hin', 1, {
-        logger: m => console.log(m) // Optional: remove in production
-      });
-      
-      // Optimize worker configuration
-      await worker.setParameters({
-        tessedit_page_seg_mode: '6', // Uniform block of text
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .-',
-      });
-      
-      const { data: { text } } = await worker.recognize(imageBuffer);
-      await worker.terminate();
-      
-      return text;
-    })();
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('OCR processing timed out')), OCR_TIMEOUT)
-    );
+    // Convert image to base64
+    const base64Image = imageBuffer.toString('base64');
     
-    const result = await Promise.race([ocrPromise, timeoutPromise]);
-    return result;
+    const prompt = `You are an expert at reading Indian restaurant menus. Analyze this menu image and extract ONLY the food item names.
+
+Instructions:
+1. Read all visible text in the menu (both English and Hindi/Devanagari if present)
+2. Identify food items, dishes, and beverages
+3. Return ONLY the food item names, one per line
+4. Focus on Indian dishes: dal, paneer, biryani, roti, naan, dosa, idli, etc.
+5. Include prices only if clearly associated with items
+6. Ignore decorative text, restaurant names, or descriptions
+
+Format: List each food item on a new line.`;
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          mimeType: 'image/jpeg', // Assume JPEG, Gemini handles multiple formats
+          data: base64Image
+        }
+      }
+    ]);
+    
+    const response = result.response.text();
+    console.log('Gemini Vision OCR result:', response);
+    
+    return response;
     
   } catch (error) {
-    console.error('OCR Error:', error);
+    console.error('Gemini Vision OCR Error:', error);
     
-    // Fallback with mock data for demo when OCR fails/times out
-    console.log('Using fallback mock menu data due to OCR timeout/error');
-    return "Dal Tadka\nPaneer Tikka\nButter Chicken\nVegetable Biryani\nRoti\nNaan\nSamosa\nChole\nRice\nMasala Dosa\nIdli\nUpma";
+    // Fallback with mock Indian menu data for demo
+    console.log('Using fallback mock menu data due to Gemini Vision error');
+    return "Dal Tadka - ₹180\nPaneer Tikka - ₹250\nButter Chicken - ₹350\nVegetable Biryani - ₹280\nRoti - ₹25\nNaan - ₹35\nSamosa - ₹40\nChole Bhature - ₹120\nMasala Dosa - ₹90\nIdli Sambhar - ₹60\nRajma Rice - ₹150\nPalak Paneer - ₹200";
   }
 }
 
