@@ -335,7 +335,14 @@ export default function FitbearApp() {
         body: formData,
       });
       
-      const result = await response.json();
+      // Check response status first
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Analysis failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      
+      const responseText = await response.text();
+      const result = JSON.parse(responseText);
       
       if (!response.ok) throw new Error(result.error?.message || 'Analysis failed');
       
