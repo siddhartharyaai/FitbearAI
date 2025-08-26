@@ -438,7 +438,7 @@ export default function FitbearApp() {
     );
   }
 
-  if (step === 'login') {
+  if (step === 'signin') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -446,11 +446,11 @@ export default function FitbearApp() {
             <div className="mx-auto w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
               <Utensils className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl font-bold text-green-700">Fitbear AI</CardTitle>
-            <p className="text-sm text-muted-foreground">Your Indian Health & Nutrition Coach</p>
+            <CardTitle className="text-2xl font-bold text-green-700">Welcome Back</CardTitle>
+            <p className="text-sm text-muted-foreground">Sign in to your Fitbear AI account</p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSignIn} className="space-y-4">
               <Input
                 type="email"
                 placeholder="Enter your email"
@@ -458,10 +458,67 @@ export default function FitbearApp() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <label className="flex items-center space-x-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span>Remember me</span>
+                </label>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="px-0 text-green-600"
+                  onClick={() => setStep('forgot-password')}
+                >
+                  Forgot password?
+                </Button>
+              </div>
+              
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Get Started
+                Sign In
               </Button>
+              
+              <div className="text-center text-sm text-muted-foreground">
+                Don't have an account?{' '}
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="px-0 text-green-600"
+                  onClick={() => setStep('signup')}
+                >
+                  Sign up
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
@@ -469,26 +526,166 @@ export default function FitbearApp() {
     );
   }
 
-  if (step === 'verify') {
+  if (step === 'signup') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle>Verify Email</CardTitle>
-            <p className="text-sm text-muted-foreground">Enter the code sent to {email}</p>
+            <div className="mx-auto w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mb-4">
+              <Utensils className="w-8 h-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-green-700">Join Fitbear AI</CardTitle>
+            <p className="text-sm text-muted-foreground">Create your nutrition coach account</p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleVerifyOTP} className="space-y-4">
+            <form onSubmit={handleSignUp} className="space-y-4">
               <Input
-                type="text"
-                placeholder="Enter 6-digit code"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create password (min 6 characters)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              <Input
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Verify
+                Create Account
+              </Button>
+              
+              <div className="text-center text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="px-0 text-green-600"
+                  onClick={() => setStep('signin')}
+                >
+                  Sign in
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === 'forgot-password') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl font-bold text-green-700">Reset Password</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Enter your email address and we'll send you a link to reset your password
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Send Reset Link
+              </Button>
+              
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="text-green-600"
+                  onClick={() => setStep('signin')}
+                >
+                  Back to Sign In
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === 'reset-password') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl font-bold text-green-700">Set New Password</CardTitle>
+            <p className="text-sm text-muted-foreground">Choose a new password for your account</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="New password (min 6 characters)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+              <Input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Update Password
               </Button>
             </form>
           </CardContent>
