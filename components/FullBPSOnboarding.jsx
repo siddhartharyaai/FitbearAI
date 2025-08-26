@@ -64,32 +64,29 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
 
   const handleSubmit = async () => {
     try {
-      // Calculate age from DOB
+      // Calculate age from DOB with validation
       const age = formData.dob ? new Date().getFullYear() - new Date(formData.dob).getFullYear() : 25;
+      const validAge = isNaN(age) || age < 10 || age > 100 ? 25 : age;
       
-      // Calculate TDEE
-      console.log('TDEE Request data:', {
-        sex: formData.gender,
-        age,
+      // Validate and prepare TDEE request data
+      const tdeeRequestData = {
+        sex: formData.gender || 'male',
+        age: validAge,
         height_cm: parseInt(formData.height_cm) || 165,
         weight_kg: parseFloat(formData.weight_kg) || 65,
-        activity_level: formData.activity_level
-      });
+        activity_level: formData.activity_level || 'moderate'
+      };
       
+      console.log('TDEE Request data:', tdeeRequestData);
+      
+      // Calculate TDEE
       const tdeeResponse = await fetch('/api/tools/tdee', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sex: formData.gender,
-          age,
-          height_cm: parseInt(formData.height_cm) || 165,
-          weight_kg: parseFloat(formData.weight_kg) || 65,
-          activity_level: formData.activity_level
-        })
+        body: JSON.stringify(tdeeRequestData)
       });
       
       console.log('TDEE Response status:', tdeeResponse.status);
-      console.log('TDEE Response headers:', tdeeResponse.headers);
       
       if (!tdeeResponse.ok) {
         const errorText = await tdeeResponse.text();
