@@ -93,12 +93,39 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
         body: JSON.stringify(tdeeRequestData)
       });
       
+      // Debug the response
+      console.log('TDEE Response status:', tdeeResponse.status);
+      console.log('TDEE Response headers:', Object.fromEntries(tdeeResponse.headers.entries()));
+      
       if (!tdeeResponse.ok) {
         const errorText = await tdeeResponse.text();
-        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText}`);
+        console.error('TDEE API Error:', errorText);
+        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText} - ${errorText}`);
       }
       
-      const tdeeData = await tdeeResponse.json();
+      // Get response as text first to debug
+      const responseText = await tdeeResponse.text();
+      console.log('TDEE Raw response text:', responseText);
+      
+      // Check if response is empty or invalid
+      if (!responseText || responseText.trim() === '') {
+        throw new Error('TDEE API returned empty response');
+      }
+      
+      let tdeeData;
+      try {
+        tdeeData = JSON.parse(responseText);
+        console.log('TDEE Parsed data:', tdeeData);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', parseError);
+        console.error('Response text was:', responseText);
+        throw new Error(`Failed to parse TDEE response as JSON: ${parseError.message}. Response was: ${responseText}`);
+      }
+      
+      // Validate the parsed data
+      if (!tdeeData || typeof tdeeData.tdee_kcal !== 'number') {
+        throw new Error(`Invalid TDEE response format: ${JSON.stringify(tdeeData)}`);
+      }
       
       // Prepare profile data
       const profileData = {
