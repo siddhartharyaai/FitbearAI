@@ -12,7 +12,6 @@ const supabase = createClient(
 
 // Comprehensive Indian food database (sample)
 const INDIAN_FOOD_DB = {
-  // Main dishes
   "dal tadka": { calories: 180, protein_g: 9, fiber_g: 8, sodium_mg: 400, category: "dal" },
   "paneer tikka": { calories: 250, protein_g: 15, fiber_g: 2, sodium_mg: 600, category: "paneer" },
   "chicken tikka": { calories: 220, protein_g: 25, fiber_g: 1, sodium_mg: 800, category: "chicken" },
@@ -34,13 +33,93 @@ const INDIAN_FOOD_DB = {
   "thali": { calories: 600, protein_g: 20, fiber_g: 12, sodium_mg: 1500, category: "complete_meal" }
 };
 
+// Menu OCR processing using Gemini Vision (primary) with Tesseract fallback
+async function processMenuImage(imageBuffer, useVisionOCR = true) {
+  if (useVisionOCR) {
+    try {
+      console.log('Processing menu image with Gemini Vision OCR...');
+      
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const base64Image = imageBuffer.toString('base64');
+      
+      const prompt = `You are an expert at reading Indian restaurant menus. Analyze this menu image and extract ONLY the food item names.
+
+Instructions:
+1. Read all visible text in the menu (both English and Hindi/Devanagari if present)
+2. Identify food items, dishes, and beverages
+3. Return ONLY the food item names, one per line
+4. Focus on Indian dishes: dal, paneer, biryani, roti, naan, dosa, idli, etc.
+5. Include prices only if clearly associated with items
+6. Ignore decorative text, restaurant names, or descriptions
+
+Format: List each food item on a new line.`;
+
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            mimeType: 'image/jpeg',
+            data: base64Image
+          }
+        }
+      ]);
+      
+      const response = result.response.text();
+      console.log('Gemini Vision OCR result:', response);
+      
+      return { text: response, confidence: 0.9, method: 'gemini_vision' };
+      
+    } catch (error) {
+      console.error('Gemini Vision OCR Error:', error);
+      console.log('Falling back to Tesseract.js...');
+      return await processTesseractFallback(imageBuffer);
+    }
+  } else {
+    return await processTesseractFallback(imageBuffer);
+  }
+}
+
+// Tesseract.js fallback implementation
+async function processTesseractFallback(imageBuffer) {
+  try {
+    console.log('Processing with Tesseract.js fallback...');
+    
+    const worker = await createWorker('eng+hin', 1);
+    
+    await worker.setParameters({
+      tessedit_page_seg_mode: '6',
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .-₹',
+    });
+    
+    const { data: { text, confidence } } = await worker.recognize(imageBuffer);
+    await worker.terminate();
+    
+    return { 
+      text, 
+      confidence: confidence / 100, 
+      method: 'tesseract_fallback',
+      degraded: true
+    };
+    
+  } catch (error) {
+    console.error('Tesseract.js Error:', error);
+    
+    // Final fallback with mock Indian menu data
+    return {
+      text: "Dal Tadka - ₹180\nPaneer Tikka - ₹250\nButter Chicken - ₹350\nVegetable Biryani - ₹280\nRoti - ₹25\nNaan - ₹35\nSamosa - ₹40",
+      confidence: 0.6,
+      method: 'mock_fallback',
+      degraded: true
+    };
+  }
+}
+
 // Dietary recommendations engine
 function getRecommendations(items, profile) {
   const scored = items.map(item => {
     let score = 0;
     let reasons = [];
     
-    // Protein scoring
     if (item.protein_g >= 15) {
       score += 20;
       reasons.push("High protein");
@@ -49,7 +128,6 @@ function getRecommendations(items, profile) {
       reasons.push("Good protein");
     }
     
-    // Fiber scoring
     if (item.fiber_g >= 5) {
       score += 15;
       reasons.push("High fiber");
@@ -58,7 +136,6 @@ function getRecommendations(items, profile) {
       reasons.push("Good fiber");
     }
     
-    // Calorie scoring (moderate calories preferred)
     if (item.calories >= 200 && item.calories <= 300) {
       score += 10;
       reasons.push("Balanced calories");
@@ -67,7 +144,6 @@ function getRecommendations(items, profile) {
       reasons.push("High calorie");
     }
     
-    // Sodium penalty
     if (item.sodium_mg > 800) {
       score -= 20;
       reasons.push("High sodium");
@@ -76,7 +152,6 @@ function getRecommendations(items, profile) {
       reasons.push("Moderate sodium");
     }
     
-    // Vegetarian preference (if applicable)
     if (profile?.veg_flag && !['chicken', 'mutton', 'fish'].includes(item.category)) {
       score += 5;
       reasons.push("Vegetarian");
@@ -89,7 +164,6 @@ function getRecommendations(items, profile) {
     };
   });
   
-  // Sort by score
   scored.sort((a, b) => b.score - a.score);
   
   return {
@@ -97,52 +171,6 @@ function getRecommendations(items, profile) {
     alternates: scored.slice(3, 5).filter(item => item.score >= 0),
     avoid: scored.slice(-3).filter(item => item.score < 0)
   };
-}
-
-// Menu OCR processing using Gemini Vision (replacing Tesseract.js)
-async function processMenuImage(imageBuffer) {
-  try {
-    console.log('Processing menu image with Gemini Vision OCR...');
-    
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    // Convert image to base64
-    const base64Image = imageBuffer.toString('base64');
-    
-    const prompt = `You are an expert at reading Indian restaurant menus. Analyze this menu image and extract ONLY the food item names.
-
-Instructions:
-1. Read all visible text in the menu (both English and Hindi/Devanagari if present)
-2. Identify food items, dishes, and beverages
-3. Return ONLY the food item names, one per line
-4. Focus on Indian dishes: dal, paneer, biryani, roti, naan, dosa, idli, etc.
-5. Include prices only if clearly associated with items
-6. Ignore decorative text, restaurant names, or descriptions
-
-Format: List each food item on a new line.`;
-
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          mimeType: 'image/jpeg', // Assume JPEG, Gemini handles multiple formats
-          data: base64Image
-        }
-      }
-    ]);
-    
-    const response = result.response.text();
-    console.log('Gemini Vision OCR result:', response);
-    
-    return response;
-    
-  } catch (error) {
-    console.error('Gemini Vision OCR Error:', error);
-    
-    // Fallback with mock Indian menu data for demo
-    console.log('Using fallback mock menu data due to Gemini Vision error');
-    return "Dal Tadka - ₹180\nPaneer Tikka - ₹250\nButter Chicken - ₹350\nVegetable Biryani - ₹280\nRoti - ₹25\nNaan - ₹35\nSamosa - ₹40\nChole Bhature - ₹120\nMasala Dosa - ₹90\nIdli Sambhar - ₹60\nRajma Rice - ₹150\nPalak Paneer - ₹200";
-  }
 }
 
 // Extract food items from OCR text
@@ -161,12 +189,11 @@ function extractFoodItems(ocrText) {
           name: foodName.charAt(0).toUpperCase() + foodName.slice(1),
           ...nutritionData
         });
-        break; // Avoid duplicates
+        break;
       }
     }
   }
   
-  // If no matches, add some common items as fallback
   if (foundItems.length === 0) {
     foundItems.push(
       { name: "Dal Tadka", ...INDIAN_FOOD_DB["dal tadka"] },
@@ -180,27 +207,26 @@ function extractFoodItems(ocrText) {
   return foundItems;
 }
 
-// Coach C prompt for Gemini
-const COACH_C_PROMPT = `You are Coach C, an empathetic Indian health, fitness, and nutrition coach. You are science-first: no fads, no pseudoscience.
+// Coach C prompt (verbatim from masterplan)
+const COACH_C_PROMPT = `You are **Coach C**, an empathetic Indian health, fitness, and nutrition coach. You are science-first: no fads, no pseudoscience.
 
 Always:
-- Personalize using the user's profile and context
-- Prefer Indian dishes and units; quantify in katori (ml), roti count/diameter, ladle, piece; grams only when needed
-- Suggest protein-forward, budget-aware options with practical swaps (tawa vs butter; dal without tadka; grilled/air-fried vs fried)
-- Keep tone non-judgmental, emphasize small wins
-- Default guardrails:
-  • Protein: start 0.83 g/kg/d; if fat-loss/strength, ~1.2–1.6 g/kg/d with vegetarian/Jain plans
-  • Fiber: ~25–40 g/d from dal, chana, veggies, fruit, whole grains; ramp gradually
-  • Sodium: <2,000 mg/d (≈5 g salt)
-  • Free sugars: <10% kcal (prefer <5%)
-
-Be explicit about assumptions (e.g., roti 16–18 cm; katori 150 ml) and ask max one clarifying question when confidence is low.
-Provide short, clear action steps; never moralize. Add this disclaimer: "General guidance only; not medical advice. Consult a clinician for red-flag symptoms."
-If the user requests unsafe methods, decline and offer evidence-based alternatives.
+* Personalize using the user's BPS profile, today's targets (kcal/macros/steps/water), and recent logs.
+* Prefer Indian dishes and units; quantify in **katori (ml)**, **roti count/diameter**, **ladle**, **piece**; grams only when needed.
+* Suggest **protein-forward**, **budget-aware** options with practical swaps (tawa vs butter; dal without tadka; grilled/air-fried vs fried).
+* Match the user's language (English → English; Hinglish → Hinglish), keep tone non-judgmental, emphasize small wins.
+* Default guardrails:
+  • Activity: **150–300 min/wk moderate or 75–150 min/wk vigorous**, plus **2+ days/wk strength**.
+  • Protein: start **0.83 g/kg/d**; if fat-loss/strength, **~1.2–1.6 g/kg/d** with vegetarian/Jain plans.
+  • Fiber: **~25–40 g/d** from dal, chana, veggies, fruit, whole grains; ramp gradually.
+  • Sodium: **<2,000 mg/d** (≈5 g salt). • Free sugars: **<10% kcal** (prefer **<5%**).
+  • Sleep: **≥7 h/night** with consistent schedule.
+  • Longevity: improve **VO₂max** (Zone-2 + intervals), maintain **strength/muscle** (progressive overload 2–3×/wk), daily movement, no smoking, limit alcohol, manage stress.
+* Be explicit about **assumptions** (e.g., roti 16–18 cm; katori 150 ml) and ask **max one** clarifying question when confidence is low.
+* Provide short, clear action steps; never moralize. Add this disclaimer: "General guidance only; not medical advice. If you have red-flag symptoms (chest pain, severe breathlessness, fainting, disordered eating, pregnancy complications), consult a clinician."
+* If the user requests unsafe or unproven methods, decline and offer a safer, evidence-based alternative.
 
 Keep responses conversational and under 150 words.`;
-
-
 
 export async function POST(request) {
   const pathname = new URL(request.url).pathname;
@@ -218,20 +244,17 @@ export async function POST(request) {
         );
       }
       
-      // Process image
+      // Check feature flag for OCR method
+      const useVisionOCR = true; // Default to Vision, can be controlled by PostHog flag
+      
       const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-      const ocrText = await processMenuImage(imageBuffer);
+      const ocrResult = await processMenuImage(imageBuffer, useVisionOCR);
       
-      // Extract food items
-      const items = extractFoodItems(ocrText);
-      
-      // Get user profile (simplified for MVP)
+      const items = extractFoodItems(ocrResult.text);
       const defaultProfile = { veg_flag: true, weight_kg: 65 };
-      
-      // Generate recommendations
       const recommendations = getRecommendations(items, defaultProfile);
       
-      return NextResponse.json({
+      const response = {
         items,
         picks: recommendations.picks,
         alternates: recommendations.alternates,
@@ -240,8 +263,13 @@ export async function POST(request) {
           "Portion sizes assumed as standard servings",
           "Vegetarian preference applied",
           "Nutrition values are approximate"
-        ]
-      });
+        ],
+        ocr_method: ocrResult.method,
+        confidence: ocrResult.confidence,
+        degraded: ocrResult.degraded || false
+      };
+      
+      return NextResponse.json(response);
     }
     
     // Meal Photo Analyzer endpoint
@@ -256,9 +284,7 @@ export async function POST(request) {
         );
       }
       
-      // Analyze meal photo (AI-powered detection)
       const analysis = await analyzeMealPhoto(imageFile);
-      
       return NextResponse.json(analysis);
     }
     
@@ -273,7 +299,6 @@ export async function POST(request) {
         );
       }
       
-      // Log food entry with idempotency check
       const logEntry = await logFoodEntry({
         food_id,
         menu_item_id,
@@ -313,18 +338,59 @@ export async function POST(request) {
       });
     }
     
+    // Voice TTS endpoint
+    if (pathname.includes('/voice/tts')) {
+      const { text, model = 'aura-2' } = await request.json();
+      
+      if (!text) {
+        return NextResponse.json(
+          { error: { type: 'DataContract', message: 'No text provided' } },
+          { status: 400 }
+        );
+      }
+      
+      try {
+        // Call Deepgram Aura-2 TTS
+        const deepgramResponse = await fetch('https://api.deepgram.com/v1/speak?model=aura-2-en', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${process.env.DEEPGRAM_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text })
+        });
+        
+        if (!deepgramResponse.ok) {
+          throw new Error('Deepgram TTS failed');
+        }
+        
+        const audioBuffer = await deepgramResponse.arrayBuffer();
+        
+        return new Response(audioBuffer, {
+          headers: {
+            'Content-Type': 'audio/mpeg',
+            'Content-Length': audioBuffer.byteLength.toString()
+          }
+        });
+        
+      } catch (error) {
+        console.error('Deepgram TTS Error:', error);
+        return NextResponse.json(
+          { error: { type: 'Logic', message: 'TTS service unavailable' } },
+          { status: 503 }
+        );
+      }
+    }
+    
     // Profile endpoints
     if (pathname.includes('/me/profile')) {
-      // GET profile or PUT update profile
       const method = request.method;
       
       if (method === 'PUT') {
         const profileData = await request.json();
-        // Update user profile in Supabase
         const updatedProfile = await updateUserProfile(profileData);
         return NextResponse.json(updatedProfile);
       } else {
-        // GET profile
         const profile = await getUserProfile();
         return NextResponse.json(profile || {});
       }
@@ -349,7 +415,6 @@ export async function POST(request) {
     if (pathname.includes('/tools/tdee')) {
       const { sex, age, height_cm, weight_kg, activity_level } = await request.json();
       
-      // Harris-Benedict equation
       let bmr;
       if (sex === 'male') {
         bmr = 88.362 + (13.397 * weight_kg) + (4.799 * height_cm) - (5.677 * age);
@@ -357,7 +422,6 @@ export async function POST(request) {
         bmr = 447.593 + (9.247 * weight_kg) + (3.098 * height_cm) - (4.330 * age);
       }
       
-      // Activity multipliers
       const activityMultipliers = {
         sedentary: 1.2,
         light: 1.375,
@@ -385,35 +449,29 @@ export async function POST(request) {
   }
 }
 
-// GET endpoint for logs and profile
 export async function GET(request) {
   const pathname = new URL(request.url).pathname;
   const url = new URL(request.url);
   
   try {
-    // Get food logs
     if (pathname.includes('/logs')) {
       const from = url.searchParams.get('from');
       const to = url.searchParams.get('to');
-      
       const logs = await getFoodLogs(from, to);
       return NextResponse.json(logs || []);
     }
     
-    // Get daily targets
     if (pathname.includes('/me/targets')) {
       const date = url.searchParams.get('date');
       const targets = await getDailyTargets(date);
       return NextResponse.json(targets);
     }
     
-    // Get user profile
     if (pathname.includes('/me')) {
       const profile = await getUserProfile();
       return NextResponse.json(profile || {});
     }
     
-    // Default health check
     return NextResponse.json({ message: "Fitbear AI API is running!" });
     
   } catch (error) {
@@ -429,8 +487,6 @@ export async function GET(request) {
 async function analyzeMealPhoto(imageFile) {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    // Convert image to base64
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
     const base64Image = imageBuffer.toString('base64');
     
@@ -454,12 +510,10 @@ Format response as JSON with: guess, portion_hint, confidence, question.`;
     
     const response = result.response.text();
     
-    // Parse AI response or use fallback
     try {
       const parsed = JSON.parse(response);
       return parsed;
     } catch {
-      // Fallback response
       return {
         guess: [
           { food_id: "dal-tadka", name: "Dal Tadka", confidence: 0.8 },
@@ -483,7 +537,6 @@ Format response as JSON with: guess, portion_hint, confidence, question.`;
   } catch (error) {
     console.error('Photo analysis error:', error);
     
-    // Fallback for demo
     return {
       guess: [
         { food_id: "thali", name: "Mixed Vegetable Thali", confidence: 0.6 }
@@ -506,24 +559,19 @@ Format response as JSON with: guess, portion_hint, confidence, question.`;
 // Food logging with idempotency
 async function logFoodEntry({ food_id, menu_item_id, portion_qty, portion_unit, idempotency_key }) {
   try {
-    // Check for existing entry with same idempotency key
     if (idempotency_key) {
-      // In production, check Supabase for existing log
       console.log(`Checking idempotency for key: ${idempotency_key}`);
     }
     
-    // Get nutrition data
     const foodData = INDIAN_FOOD_DB[food_id] || INDIAN_FOOD_DB["dal tadka"];
     
-    // Calculate actual nutrition based on portion
     const actualCalories = Math.round(foodData.calories * portion_qty);
     const actualProtein = Math.round(foodData.protein_g * portion_qty * 10) / 10;
-    const actualCarbs = Math.round(foodData.carb_g * portion_qty * 10) / 10;
-    const actualFat = Math.round(foodData.fat_g * portion_qty * 10) / 10;
+    const actualCarbs = Math.round((foodData.carb_g || 0) * portion_qty * 10) / 10;
+    const actualFat = Math.round((foodData.fat_g || 0) * portion_qty * 10) / 10;
     const actualFiber = Math.round(foodData.fiber_g * portion_qty * 10) / 10;
     const actualSodium = Math.round(foodData.sodium_mg * portion_qty);
     
-    // Create log entry
     const logEntry = {
       log_id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       food_id,
@@ -540,7 +588,6 @@ async function logFoodEntry({ food_id, menu_item_id, portion_qty, portion_unit, 
       idempotency_key
     };
     
-    // In production: Save to Supabase
     console.log('Logging food entry:', logEntry);
     
     return {
@@ -560,9 +607,8 @@ async function logFoodEntry({ food_id, menu_item_id, portion_qty, portion_unit, 
   }
 }
 
-// Get food logs (stub)
+// Stub functions for demo
 async function getFoodLogs(from, to) {
-  // Return mock data for demo
   return [
     {
       id: "log1",
@@ -583,7 +629,6 @@ async function getFoodLogs(from, to) {
   ];
 }
 
-// User profile functions (stubs)
 async function getUserProfile() {
   return {
     name: "Demo User",
