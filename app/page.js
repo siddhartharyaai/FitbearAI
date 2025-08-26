@@ -376,6 +376,25 @@ export default function FitbearApp() {
   // Main app interface
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      {/* Mode Banner */}
+      <div className={`w-full py-2 px-4 text-center text-sm font-medium ${
+        mode === 'Production' 
+          ? 'bg-red-600 text-white' 
+          : 'bg-yellow-500 text-black'
+      }`}>
+        <div className="flex items-center justify-center space-x-2">
+          <span>🚀</span>
+          <span>{mode} Mode</span>
+          {mode === 'Demo' && <span>• Sample data shown for demonstration</span>}
+          <button 
+            onClick={() => setMode(mode === 'Demo' ? 'Production' : 'Demo')}
+            className="ml-4 px-2 py-1 bg-white bg-opacity-20 rounded text-xs hover:bg-opacity-30"
+          >
+            Switch to {mode === 'Demo' ? 'Production' : 'Demo'}
+          </button>
+        </div>
+      </div>
+
       <div className="container mx-auto p-4 max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
