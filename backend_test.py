@@ -11,6 +11,7 @@ from PIL import Image
 import base64
 import os
 import sys
+import time
 
 # Get the base URL from environment
 BASE_URL = "https://health-coach-10.preview.emergentagent.com/api"
