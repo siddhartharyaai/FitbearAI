@@ -86,8 +86,6 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
         throw new Error('Invalid numerical values in form data. Please check your inputs.');
       }
       
-      console.log('TDEE Request data:', tdeeRequestData);
-      
       // Calculate TDEE
       const tdeeResponse = await fetch('/api/tools/tdee', {
         method: 'POST',
@@ -95,11 +93,8 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
         body: JSON.stringify(tdeeRequestData)
       });
       
-      console.log('TDEE Response status:', tdeeResponse.status);
-      
       if (!tdeeResponse.ok) {
         const errorText = await tdeeResponse.text();
-        console.log('TDEE Error response:', errorText);
         throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText}`);
       }
       
