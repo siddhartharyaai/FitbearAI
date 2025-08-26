@@ -68,6 +68,14 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
       const age = formData.dob ? new Date().getFullYear() - new Date(formData.dob).getFullYear() : 25;
       
       // Calculate TDEE
+      console.log('TDEE Request data:', {
+        sex: formData.gender,
+        age,
+        height_cm: parseInt(formData.height_cm) || 165,
+        weight_kg: parseFloat(formData.weight_kg) || 65,
+        activity_level: formData.activity_level
+      });
+      
       const tdeeResponse = await fetch('/api/tools/tdee', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -80,11 +88,25 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
         })
       });
       
+      console.log('TDEE Response status:', tdeeResponse.status);
+      console.log('TDEE Response headers:', tdeeResponse.headers);
+      
       if (!tdeeResponse.ok) {
-        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText}`);
+        const errorText = await tdeeResponse.text();
+        console.log('TDEE Error response:', errorText);
+        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText} - ${errorText}`);
       }
       
-      const tdeeData = await tdeeResponse.json();
+      const responseText = await tdeeResponse.text();
+      console.log('TDEE Raw response:', responseText);
+      
+      let tdeeData;
+      try {
+        tdeeData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON Parse error:', parseError);
+        throw new Error(`Invalid JSON response from TDEE API: ${responseText}`);
+      }
       
       // Prepare profile data
       const profileData = {
