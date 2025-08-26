@@ -63,23 +63,28 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
   };
 
   const handleSubmit = async () => {
-    // Calculate age from DOB
-    const age = formData.dob ? new Date().getFullYear() - new Date(formData.dob).getFullYear() : 25;
-    
-    // Calculate TDEE
-    const tdeeResponse = await fetch('/api/tools/tdee', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sex: formData.gender,
-        age,
-        height_cm: parseInt(formData.height_cm) || 165,
-        weight_kg: parseFloat(formData.weight_kg) || 65,
-        activity_level: formData.activity_level
-      })
-    });
-    
-    const tdeeData = await tdeeResponse.json();
+    try {
+      // Calculate age from DOB
+      const age = formData.dob ? new Date().getFullYear() - new Date(formData.dob).getFullYear() : 25;
+      
+      // Calculate TDEE
+      const tdeeResponse = await fetch('/api/tools/tdee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sex: formData.gender,
+          age,
+          height_cm: parseInt(formData.height_cm) || 165,
+          weight_kg: parseFloat(formData.weight_kg) || 65,
+          activity_level: formData.activity_level
+        })
+      });
+      
+      if (!tdeeResponse.ok) {
+        throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText}`);
+      }
+      
+      const tdeeData = await tdeeResponse.json();
     
     // Prepare profile data
     const profileData = {
