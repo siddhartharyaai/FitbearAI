@@ -36,10 +36,6 @@ export default function FitbearApp() {
   const [mode, setMode] = useState('Demo');
   const [currentView, setCurrentView] = useState('app');
   
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
   const { toast } = useToast();
   const { track, getFeatureFlag } = usePostHog();
   const router = useRouter();
