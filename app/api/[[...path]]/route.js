@@ -295,6 +295,7 @@ export async function POST(request) {
       const imageFile = formData.get('image');
       
       if (!imageFile) {
+        assertNoMock('menu scan: no image uploaded');
         return NextResponse.json(
           { error: { type: 'DataContract', message: 'No image provided' } },
           { status: 400 }
