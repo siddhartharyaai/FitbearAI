@@ -1,0 +1,115 @@
+<analysis>
+The previous AI engineer meticulously developed the Fitbear AI application from an initial MVP to a feature-rich state, addressing numerous bugs and architectural challenges. The journey began with fixing a critical JSX build error in , followed by a major refactor of the authentication system from OTP to email/password using Supabase. A significant recurring issue was a JSON parsing error in the TDEE calculation, which required a comprehensive root-cause fix involving dedicated server-side JSON-safe API routes and a client-side  utility with local fallbacks. An architecture mismatch was resolved by migrating profile saving from direct Supabase calls to MongoDB via backend APIs. The engineer also implemented a robust repository layer and prepared for future Supabase migration. Facing persistent infrastructure-related 502 errors in the Emergent preview cluster, a strategic decision was made to deploy to Netlify, which introduced new debugging challenges related to MongoDB connectivity and environment variable configuration. Most recently, the engineer was addressing issues with Demo Mode, non-functional image uploads, Web Speech fallback for voice, and the absence of a My Profile page, having implemented partial fixes, but currently facing a Netlify build error due to a missing Supabase client module in .
+</analysis>
+
+<product_requirements>
+The Fitbear AI is an Indian-first, web-first PWA targeting Indian consumers with mixed diets and intermittent connectivity. It aims to be a free-first health/fitness/nutrition assistant.
+Core features include:
+1.  **Coach C (chat + voice)**: Empathetic, science-first coaching, Indianized portions, protein-forward, personalized with BPS profile, daily targets, and logs. Supports English/Hinglish.
+2.  **Menu Scanner**: Upload menu photo, perform OCR, map to canonical dishes, get nutrition, and suggest top picks, alternates, and avoids.
+3.  **Meal Photo Analyzer**: Image recognition for dishes, confirmation question, computation, and logging.
+4.  **Onboarding (BPS)**: Comprehensive profile setup including demographics, biometrics, activity, sleep, stress, medical flags, dietary preferences (veg/Jain/halal/eggetarian), allergies, budget, schedule, cuisines, and pantry.
+5.  **Targets**: Compute TDEE (Total Daily Energy Expenditure), calorie budget, macro split, hydration, and steps.
+6.  **Logs/History + Evening check-in**.
+7.  **Settings**: Language, dietary flags, privacy (export/delete), global Mode Banner (Demo | Production).
+
+The M0 success criteria require an E2E happy path (onboard → targets → scan menu → picks → log → coach reply → history), fast chat/scans, data safety (RLS, server-side secrets, no PII in logs), and accessibility baseline.
+</product_requirements>
+
+<key_technical_concepts>
+-   **Next.js (PWA)**: Full-stack framework for the application.
+-   **Supabase**: Authentication (Email/Password), with planned database migration.
+-   **MongoDB Atlas**: Primary database for application data (profiles, targets, logs).
+-   **Gemini Flash (LLM)**: AI for Coach C, Menu Scanner, Meal Photo Analyzer Vision OCR.
+-   **Deepgram STT/TTS**: For voice interactions.
+-   **PostHog**: Analytics and feature flags.
+-   **shadcn/ui & Tailwind CSS**: UI components and styling.
+-   **Netlify**: Deployment platform to bypass preview cluster issues.
+</key_technical_concepts>
+
+<code_architecture>
+
+
+-   ****:
+    -   **Summary**: The primary backend API route, now significantly refactored. It handles diverse endpoints like , , , , and .
+    -   **Changes**: Initially held all backend logic, now some specific endpoints (like TDEE, TTS, STT) have been moved to dedicated route files. It has been updated to use MongoDB for data operations, includes  for owner-only access, and has robust error handling for database operations, returning 200 with warnings instead of 500s on soft failures.
+-   ****:
+    -   **Summary**: A dedicated API endpoint for TDEE calculation, ensuring a consistent JSON response.
+    -   **Changes**: Created to handle TDEE calculations and always return valid JSON, even for invalid payloads, preventing JSON parsing errors on the client. It includes a  function (Harris-Benedict).
+-   ****, ****:
+    -   **Summary**: Dedicated API endpoints for Deepgram Text-to-Speech and Speech-to-Text.
+    -   **Changes**: Created to integrate Deepgram for voice functionality, handling audio input/output.
+-   ****:
+    -   **Summary**: A simple health check endpoint to verify application status.
+    -   **Changes**: Created to report the application's health, database status, and runtime environment.
+-   ****:
+    -   **Summary**: The main frontend entry point, orchestrating UI, state, and interactions.
+    -   **Changes**: Underwent major rewrites to fix JSX errors, integrate new password-based Supabase authentication (replacing OTP), use backend API endpoints for profile/targets instead of direct Supabase calls, and now incorporates various feature components (Voice, Onboarding, Settings, Analytics). It also includes  for API response parsing.
+-   ****:
+    -   **Summary**: Global layout and Supabase client initialization.
+    -   **Changes**: Includes  component and PWA service worker registration.
+-   ****:
+    -   **Summary**: A dedicated page to view and edit the user's profile.
+    -   **Changes**: Newly created to display user BPS data fetched from .
+-   ****:
+    -   **Summary**: The comprehensive 5-step onboarding form.
+    -   **Changes**: Updated to use  for TDEE API calls, includes a  fallback, and saves profile data via  and .
+-   ****:
+    -   **Summary**: Utility for safe JSON parsing from HTTP responses.
+    -   **Changes**: Newly created to provide a robust  function that handles various response types (JSON, HTML, empty) and error conditions, preventing  errors.
+-   ****:
+    -   **Summary**: Manages application mode (demo/production) and mock behavior.
+    -   **Changes**: Newly created to define , , , and  functions to guard against demo data in production environments.
+-   ****:
+    -   **Summary**: Authentication utility for Supabase.
+    -   **Changes**: Created to provide  for API routes, ensuring owner-only access based on Supabase session.
+-   ****:
+    -   **Summary**: A new repository layer for abstracting data access.
+    -   **Changes**: Introduced ,  for provider switching,  for current MongoDB logic, and  as stubs for future Supabase migration.
+-   ****:
+    -   **Summary**: Script to create MongoDB indexes.
+    -   **Changes**: Created to ensure optimal performance for MongoDB collections.
+-   ****:
+    -   **Summary**: Jest test for the TDEE endpoint.
+    -   **Changes**: Created to ensure the TDEE API always returns valid JSON under various conditions.
+-   ****:
+    -   **Summary**: Test for owner-only access control.
+    -   **Changes**: Created to verify that API routes enforce user-specific data access.
+-   ****:
+    -   **Summary**: Documentation for future Supabase migration.
+    -   **Changes**: Created to outline the dual-write plan, backfill steps, RLS overview, and  flip.
+-   ****, ****, ****:
+    -   **Summary**: Netlify-specific configuration and debugging files.
+    -   **Changes**: Created to facilitate deployment to Netlify, pin Node.js version, force  runtime for API routes, and provide deployment debugging information.
+</code_architecture>
+
+<pending_tasks>
+-   Fix the Netlify build failure:  at line 83.
+-   Provide all required  variables for Netlify deployment to the user.
+-   Integrate Deepgram TTS/STT into the Coach UI, including a Stop button and push-to-talk.
+-   Add a Profile link in the header navigation.
+-   Complete the client-side implementation for image uploads () for Menu Scan and Meal Photo Analyzer.
+-   Verify all production mode guards and features (image uploads, voice, profile page, no mock outputs) work as expected on Netlify.
+</pending_tasks>
+
+<current_work>
+Immediately before this summary request, the AI engineer was in the process of implementing comprehensive fixes to get the Netlify-deployed application fully functional, addressing user reports of:
+1.  **Demo Mode**: The app behaving like Demo Mode everywhere with mock outputs.
+2.  **Image Uploads**: Menu/Photo uploads not being read by Gemini.
+3.  **Voice**: Web Speech fallback (looping) instead of Deepgram.
+4.  **Missing My Profile view/edit**.
+
+The engineer completed the following:
+-   Created  to manage  and  for production guards.
+-   Modified  to remove hardcoded demo fallbacks and add  for photo analysis.
+-   Created dedicated Deepgram API routes (, ) and client-side utilities ().
+-   Created the  to display user profile data.
+-   Updated  with new environment variables (, , , , ).
+-   Fixed a Supabase client configuration issue in  by switching from  to .
+
+However, the user reported a **build failure on Netlify**: . The current work is focused on resolving this specific build error and providing the necessary Netlify environment variables.
+</current_work>
+
+<optional_next_step>
+Fix the  error in  and provide the complete list of Netlify environment variables.
+</optional_next_step>
