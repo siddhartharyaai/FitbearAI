@@ -336,6 +336,7 @@ export async function POST(request) {
       const imageFile = formData.get('image');
       
       if (!imageFile) {
+        assertNoMock('meal photo analysis: no image uploaded');
         return NextResponse.json(
           { error: { type: 'DataContract', message: 'No meal image provided' } },
           { status: 400 }
