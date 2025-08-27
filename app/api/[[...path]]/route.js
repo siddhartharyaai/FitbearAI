@@ -501,6 +501,41 @@ export async function GET(request) {
   const url = new URL(request.url);
   
   try {
+    // Export endpoint
+    if (pathname.includes('/export')) {
+      // Get user from auth
+      const { user, error } = await requireUser(request);
+      if (error) return error;
+      
+      // Get all user data
+      const profile = await getUserProfile(user.id);
+      const targets = await getDailyTargets(null, user.id); // Get all targets
+      const logs = await getFoodLogs(null, null, user.id); // Get all logs
+      
+      const exportData = {
+        user_id: user.id,
+        exported_at: new Date().toISOString(),
+        profile: profile || {},
+        targets: targets || [],
+        logs: logs || [],
+        metadata: {
+          total_targets: (targets || []).length,
+          total_logs: (logs || []).length,
+          date_range: {
+            earliest_log: logs?.[logs.length - 1]?.ts,
+            latest_log: logs?.[0]?.ts
+          }
+        }
+      };
+      
+      return NextResponse.json(exportData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Disposition': `attachment; filename="fitbear-export-${user.id}-${new Date().toISOString().split('T')[0]}.json"`
+        }
+      });
+    }
+
     if (pathname.includes('/logs')) {
       const from = url.searchParams.get('from');
       const to = url.searchParams.get('to');
