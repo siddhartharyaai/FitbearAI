@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 import { createWorker } from 'tesseract.js';
 import { requireUser } from '@/lib/auth';
+import { MongoClient } from 'mongodb';
 
 // Initialize clients
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
