@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createWorker } from 'tesseract.js';
 import { requireUser } from '@/lib/auth';
 import { MongoClient } from 'mongodb';
+import { assertNoMock } from '@/lib/mode';
 
 // Force Node.js runtime for MongoDB operations
 export const runtime = 'nodejs';
