@@ -5,6 +5,10 @@ import { createWorker } from 'tesseract.js';
 import { requireUser } from '@/lib/auth';
 import { MongoClient } from 'mongodb';
 
+// Force Node.js runtime for MongoDB operations
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 // MongoDB connection setup
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017';
 const DB_NAME = process.env.DB_NAME || 'your_database_name';
