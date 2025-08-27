@@ -154,11 +154,11 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
       const proteinMultiplier = formData.activity_level === 'active' || formData.activity_level === 'very_active' ? 1.4 : 1.0;
       const targetsData = {
         date: new Date().toISOString().split('T')[0],
-        tdee_kcal: tdeeData.tdee_kcal,
-        kcal_budget: Math.round(tdeeData.tdee_kcal * 0.9), // Slight deficit
+        tdee_kcal: tdeeKcal,
+        kcal_budget: Math.round(tdeeKcal * 0.9), // Slight deficit
         protein_g: Math.round(formData.weight_kg * proteinMultiplier),
-        carb_g: Math.round((tdeeData.tdee_kcal * 0.45) / 4), // 45% carbs
-        fat_g: Math.round((tdeeData.tdee_kcal * 0.25) / 9), // 25% fats
+        carb_g: Math.round((tdeeKcal * 0.45) / 4), // 45% carbs
+        fat_g: Math.round((tdeeKcal * 0.25) / 9), // 25% fats
         fiber_g: 30,
         sodium_mg: 2000,
         water_ml: 2500,
