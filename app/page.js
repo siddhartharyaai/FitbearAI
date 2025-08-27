@@ -68,17 +68,29 @@ export default function FitbearApp() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       setUser(user);
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
       
-      if (profileData) {
-        setProfile(profileData);
-        loadDailyTargets();
-        setStep('app');
-      } else {
+      try {
+        // Use API endpoint instead of direct Supabase table access
+        const response = await fetch('/api/me/profile');
+        
+        if (response.ok) {
+          const responseText = await response.text();
+          if (responseText && responseText.trim() !== '') {
+            const profileData = JSON.parse(responseText);
+            setProfile(profileData);
+            loadDailyTargets();
+            setStep('app');
+          } else {
+            // No profile data, go to onboarding
+            setStep('onboarding');
+          }
+        } else {
+          // Profile not found or API error, go to onboarding
+          setStep('onboarding');
+        }
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        // On error, go to onboarding
         setStep('onboarding');
       }
     }
