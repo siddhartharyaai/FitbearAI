@@ -17,10 +17,10 @@ import time
 INTERNAL_URL = "http://localhost:3000/api"
 EXTERNAL_URL = "https://fitbear-ai.preview.emergentagent.com/api"
 
-# Use external URL for production testing as per review request
-BASE_URL = EXTERNAL_URL
-print(f"🌐 Testing against EXTERNAL URL: {BASE_URL}")
-print("🎯 Focus: Production mode, Netlify deployment, external access")
+# Test internal URL first to verify application code, then external for infrastructure
+BASE_URL = INTERNAL_URL
+print(f"🔧 Testing against INTERNAL URL first: {BASE_URL}")
+print("🎯 Focus: Application code verification, then infrastructure testing")
 
 def create_test_image():
     """Create a simple test image with menu text for OCR testing"""
