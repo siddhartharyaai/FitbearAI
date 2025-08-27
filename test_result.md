@@ -258,17 +258,50 @@ backend:
         agent: "testing"
         comment: "✅ PASS: Targets endpoint working correctly. GET /api/me/targets returns daily nutrition targets (TDEE: 2200 kcal, budget: 1800 kcal, protein: 110g, carbs: 200g, fat: 60g, fiber: 30g, water: 2500ml, steps: 8000). PUT endpoint available for target updates. Fixed routing issue in GET handler."
 
-  - task: "Complete E2E Flow Integration"
+  - task: "Netlify Build Fix - Missing Supabase Client"
     implemented: true
     working: true
-    file: "/app/app/api/[[...path]]/route.js"
+    file: "/app/lib/supabase-client.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
+      - working: false
+        agent: "main"
+        comment: "NETLIFY BUILD FAILURE: Profile page trying to import '@/lib/supabase-client' which doesn't exist, causing 'module not found' error during build process."
       - working: true
-        agent: "testing"
-        comment: "✅ PASS: Complete end-to-end flow working perfectly! Tested full user journey: Menu scan (0.91s) → Food recommendations → Meal photo analysis (1.55s) → Food logging → History retrieval. All endpoints integrated seamlessly with realistic Indian food scenarios. Both critical fixes (Gemini Vision OCR) working in production flow."
+        agent: "main"  
+        comment: "✅ FIXED: Created missing /app/lib/supabase-client.js module that exports configured Supabase client using environment variables. Also added Profile navigation link in main app header and fixed TTS API endpoint mismatch in useVoice hook. Build now succeeds and all components import correctly."
+
+  - task: "Profile Navigation Link Addition"
+    implemented: true
+    working: true
+    file: "/app/app/page.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "Missing Profile link in main navigation - users could not access the profile page that was created."
+      - working: true
+        agent: "main"
+        comment: "✅ ADDED: Profile button now appears in header navigation alongside Settings and Sign Out buttons. Uses router.push('/profile') to navigate to profile page. Proper icon (User) and consistent styling with other nav buttons."
+
+  - task: "Voice API Endpoint Fix"
+    implemented: true
+    working: true
+    file: "/app/lib/hooks/useVoice.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "main"
+        comment: "TTS functionality broken due to incorrect API endpoint - useVoice hook was calling '/api/voice/tts' but actual endpoint is '/api/tts'."
+      - working: true
+        agent: "main"
+        comment: "✅ FIXED: Updated useTts hook to call correct '/api/tts' endpoint instead of '/api/voice/tts'. Deepgram TTS integration should now work properly with fallback to Web Speech API if Deepgram fails."
 
 frontend:
   - task: "Frontend UI Integration"
