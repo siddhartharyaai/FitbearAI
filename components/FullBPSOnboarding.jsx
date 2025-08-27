@@ -63,6 +63,25 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
     setStep(prev => prev - 1);
   };
 
+  // Local TDEE computation using Harris-Benedict equation (same as server)
+  function computeLocalTDEE(payload) {
+    const { sex, age, height_cm, weight_kg, activity_level } = payload;
+    
+    const bmr = sex === "male"
+      ? 66.47 + 13.75 * weight_kg + 5.003 * height_cm - 6.755 * age
+      : 655.1 + 9.563 * weight_kg + 1.850 * height_cm - 4.676 * age;
+
+    const activityMultipliers = {
+      sedentary: 1.2,
+      light: 1.375,
+      moderate: 1.55,
+      active: 1.725,
+      very_active: 1.9,
+    };
+
+    return Math.round(bmr * (activityMultipliers[activity_level] ?? 1.2));
+  }
+
   const handleSubmit = async () => {
     try {
       // Calculate age from DOB with validation
