@@ -567,7 +567,8 @@ export async function GET(request) {
     }
     
     if (pathname.includes('/me')) {
-      const profile = await getUserProfile();
+      const userId = url.searchParams.get('user_id') || 'demo-user';
+      const profile = await getUserProfile(userId);
       return NextResponse.json(profile || {});
     }
     
