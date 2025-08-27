@@ -330,7 +330,7 @@ metadata:
 
 test_plan:
   current_focus:
-    - "FullBPSOnboarding JSON Parsing Error Fix"
+    - "Architecture Mismatch Fix - Supabase to MongoDB API"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -356,3 +356,5 @@ agent_communication:
     message: "🎯 FORENSIC AUDIT COMPLETE: Comprehensive testing confirms JSON parsing error fix is 100% effective across entire application. Verified all critical scenarios: 1) FullBPSOnboarding TDEE calculation with fallback (2646 kcal), 2) All API endpoints use proper response.text() → JSON.parse() pattern, 3) 502 errors handled gracefully without crashes, 4) Zero JSON parsing errors in browser console, 5) Empty response validation prevents 'Unexpected end of JSON input', 6) Menu scanning, photo analysis, coach chat, food logging all resilient to network failures. The fix addresses every scenario in the forensic request. Application maintains full functionality even during API outages. JSON parsing error completely eliminated."
   - agent: "testing"
     message: "🎯 ROOT-CAUSE FIX VERIFICATION: Comprehensive testing of JSON parsing error fix under real failure conditions confirms 100% effectiveness. CONFIRMED ROOT CAUSE: Kubernetes ingress routing causes ALL /api/* requests to return 502 Bad Gateway with empty responses. SOLUTION VERIFIED: 1) safeJson utility prevents crashes using response.text() → JSON.parse() pattern, 2) Local Harris-Benedict fallback (2659 kcal) works when API fails, 3) Zero JSON parsing errors in 29 console logs despite 502 failures, 4) Added TDEE handler to main route file for routing fix, 5) Application gracefully handles API failures with offline calculations. The comprehensive solution (safeJson + fallback + error handling) has permanently eliminated JSON parsing errors across all scenarios. Users can complete onboarding even during API outages."
+  - agent: "testing"
+    message: "🎉 ARCHITECTURE MISMATCH SUCCESSFULLY FIXED: Identified and resolved critical issue where frontend was trying to access Supabase tables instead of MongoDB API. ROOT CAUSE: getProfile() function in page.js was using supabase.from('profiles').select() causing 'Could not find table public.profiles' error. SOLUTION: Updated getProfile() to use '/api/me/profile' endpoint with proper error handling. TESTING RESULTS: ✅ Successfully created account and reached onboarding without database errors, ✅ Profile setup flow works correctly via MongoDB API, ✅ No more schema cache errors, ✅ Frontend now consistently uses API endpoints. The architecture mismatch has been completely resolved - profile saving now works via PUT /api/me/profile and PUT /api/me/targets as intended."
