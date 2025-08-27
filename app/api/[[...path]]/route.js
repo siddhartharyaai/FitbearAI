@@ -744,6 +744,9 @@ Format response as JSON with: guess, portion_hint, confidence, question.`;
   } catch (error) {
     console.error('Photo analysis error:', error);
     
+    assertNoMock('meal photo analysis: processing error');
+    
+    // Demo fallback (only in non-production)
     return {
       guess: [
         { food_id: "thali", name: "Mixed Vegetable Thali", confidence: 0.6 }
