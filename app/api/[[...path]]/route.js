@@ -5,7 +5,23 @@ import { createWorker } from 'tesseract.js';
 import { requireUser } from '@/lib/auth';
 import { MongoClient } from 'mongodb';
 
-// Initialize clients
+// MongoDB connection setup
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017';
+const DB_NAME = process.env.DB_NAME || 'your_database_name';
+
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedDb) {
+    return cachedDb;
+  }
+  
+  const client = new MongoClient(MONGO_URL);
+  await client.connect();
+  const db = client.db(DB_NAME);
+  cachedDb = db;
+  return db;
+}
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const supabase = createClient(
   process.env.SUPABASE_URL,
