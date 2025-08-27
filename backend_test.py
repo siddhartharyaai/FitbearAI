@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend Testing for Fitbear AI
-Tests all API endpoints with realistic Indian nutrition data
+Comprehensive Backend Testing for Fitbear AI - Post Netlify Deployment
+Tests all API endpoints with focus on production mode and external URL access
 """
 
 import requests
@@ -13,11 +13,14 @@ import os
 import sys
 import time
 
-# Get the base URL from environment
-import os
+# Get the base URL from environment - Test both internal and external URLs
+INTERNAL_URL = "http://localhost:3000/api"
+EXTERNAL_URL = "https://fitbear-ai.preview.emergentagent.com/api"
 
-# Use localhost for internal testing since we're in the same container
-BASE_URL = "http://localhost:3000/api"
+# Use external URL for production testing as per review request
+BASE_URL = EXTERNAL_URL
+print(f"🌐 Testing against EXTERNAL URL: {BASE_URL}")
+print("🎯 Focus: Production mode, Netlify deployment, external access")
 
 def create_test_image():
     """Create a simple test image with menu text for OCR testing"""
