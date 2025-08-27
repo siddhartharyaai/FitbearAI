@@ -345,8 +345,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Architecture Mismatch Fix - Supabase to MongoDB API"
-  stuck_tasks: []
+    - "BPS Onboarding Profile Saving - 502 Error Investigation"
+  stuck_tasks:
+    - "BPS Onboarding Profile Saving - 502 Error Investigation"
   test_all: false
   test_priority: "high_first"
 
