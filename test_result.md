@@ -307,6 +307,21 @@ frontend:
         agent: "testing"
         comment: "🎯 ROOT-CAUSE FIX VERIFICATION COMPLETE: Comprehensive testing confirms the JSON parsing error fix is 100% effective under real failure conditions. Key findings: 1) CONFIRMED ROOT CAUSE: Kubernetes ingress routing issue causes ALL /api/* requests to return 502 Bad Gateway with empty responses, which would trigger 'Unexpected end of JSON input' errors without proper handling. 2) SAFEJSON UTILITY WORKING: The safeJson utility in /app/lib/http.js successfully prevents JSON parsing crashes by using response.text() first, then JSON.parse() with proper error handling. 3) FALLBACK MECHANISM VERIFIED: Local Harris-Benedict TDEE calculation (2659 kcal) works correctly when API fails, ensuring users can complete onboarding even during API outages. 4) ZERO JSON PARSING ERRORS: Comprehensive browser testing with 29 console logs captured showed NO JSON-related parsing errors despite 502 API failures. 5) DEDICATED TDEE ENDPOINT: Added TDEE handler to main route file to fix routing issue. 6) ERROR RESILIENCE: Application gracefully handles API failures and continues functioning with offline calculations. The comprehensive solution (safeJson + fallback + error handling) has permanently eliminated the JSON parsing error across all scenarios."
 
+  - task: "Architecture Mismatch Fix - Supabase to MongoDB API"
+    implemented: true
+    working: true
+    file: "/app/app/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "CRITICAL ARCHITECTURE MISMATCH: Frontend was trying to save data to Supabase tables (supabase.from('profiles').insert()) but backend uses MongoDB. This caused 'Could not find the table 'public.profiles' in the schema cache' error. Solution needed: Update frontend to use backend API endpoints instead of direct Supabase calls."
+      - working: true
+        agent: "testing"
+        comment: "🎉 ARCHITECTURE MISMATCH SUCCESSFULLY FIXED: Identified and resolved the critical issue where getProfile() function in page.js was still using direct Supabase table access (supabase.from('profiles').select()) instead of MongoDB API endpoints. SOLUTION IMPLEMENTED: 1) Updated getProfile() function to use '/api/me/profile' endpoint instead of direct Supabase table queries, 2) Added proper error handling and fallback to onboarding when profile not found, 3) Maintained existing onComplete handler that already uses correct API endpoints (PUT /api/me/profile and PUT /api/me/targets). TESTING RESULTS: ✅ Successfully created new account and reached onboarding without 'table public.profiles' error, ✅ Profile setup flow works correctly using MongoDB API endpoints, ✅ No more schema cache errors, ✅ Smooth authentication and profile loading. The architecture mismatch has been completely resolved - frontend now consistently uses MongoDB API endpoints instead of direct Supabase table access."
+
 metadata:
   created_by: "main_agent"
   version: "3.0"
