@@ -10,21 +10,55 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 // MongoDB connection setup
-const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017';
-const DB_NAME = process.env.DB_NAME || 'your_database_name';
+const MONGO_URL = process.env.MONGO_URL || process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const DB_NAME = process.env.DB_NAME || process.env.MONGODB_DB || 'your_database_name';
 
 let cachedDb = null;
+let cachedClient = null;
 
 async function connectToDatabase() {
   if (cachedDb) {
     return cachedDb;
   }
   
-  const client = new MongoClient(MONGO_URL);
-  await client.connect();
-  const db = client.db(DB_NAME);
-  cachedDb = db;
-  return db;
+  try {
+    console.log('Connecting to MongoDB with:', { 
+      url: MONGO_URL ? 'SET' : 'MISSING', 
+      db: DB_NAME,
+      env_vars: {
+        MONGO_URL: !!process.env.MONGO_URL,
+        MONGODB_URI: !!process.env.MONGODB_URI,
+        DB_NAME: !!process.env.DB_NAME,
+        MONGODB_DB: !!process.env.MONGODB_DB
+      }
+    });
+    
+    if (!MONGO_URL || MONGO_URL === 'mongodb://localhost:27017') {
+      throw new Error('MongoDB connection string not configured for production');
+    }
+    
+    const client = new MongoClient(MONGO_URL, {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+    });
+    
+    await client.connect();
+    console.log('Successfully connected to MongoDB');
+    
+    const db = client.db(DB_NAME);
+    
+    // Test the connection with a ping
+    await db.admin().ping();
+    console.log('MongoDB ping successful');
+    
+    cachedDb = db;
+    cachedClient = client;
+    return db;
+  } catch (error) {
+    console.error('MongoDB connection failed:', error);
+    throw new Error(`Database connection failed: ${error.message}`);
+  }
 }
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const supabase = createClient(
