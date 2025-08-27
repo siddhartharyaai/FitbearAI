@@ -782,19 +782,29 @@ export default function FitbearApp() {
         onComplete={async (profileData, targetsData) => {
           setLoading(true);
           try {
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert([{ user_id: user.id, ...profileData }]);
-            
-            if (profileError) throw profileError;
+            // Save profile via API endpoint instead of direct Supabase
+            const profileResponse = await fetch('/api/me/profile', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: user.id, ...profileData })
+            });
 
+            if (!profileResponse.ok) {
+              const errorText = await profileResponse.text();
+              throw new Error(`Failed to save profile: ${profileResponse.status} - ${errorText}`);
+            }
+
+            // Save targets via API endpoint  
             const targetsResponse = await fetch('/api/me/targets', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ user_id: user.id, ...targetsData })
             });
 
-            if (!targetsResponse.ok) throw new Error('Failed to save targets');
+            if (!targetsResponse.ok) {
+              const errorText = await targetsResponse.text();
+              throw new Error(`Failed to save targets: ${targetsResponse.status} - ${errorText}`);
+            }
 
             track('onboarding_completed', {
               dietary_preferences: {
@@ -806,8 +816,16 @@ export default function FitbearApp() {
               locale: profileData.locale
             });
 
+            // Refresh profile data
             await getProfile();
+            
+            // Show success message
+            toast({
+              title: "Profile Setup Complete!",
+              description: "Your health profile and daily targets have been saved successfully.",
+            });
           } catch (error) {
+            console.error('Profile setup error:', error);
             toast({
               title: "Setup Error",
               description: error.message,
