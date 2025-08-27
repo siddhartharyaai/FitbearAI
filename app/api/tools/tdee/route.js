@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+// Force Node.js runtime for MongoDB operations  
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 function computeTDEE(payload) {
   // Harris-Benedict equation (works fine for MVP)
   const { sex, age, height_cm, weight_kg, activity_level } = payload;
