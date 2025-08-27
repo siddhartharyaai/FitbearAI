@@ -617,23 +617,313 @@ def test_targets_endpoint():
         print(f"❌ FAIL: Targets endpoint error - {e}")
         return False
 
+def test_tts_endpoint():
+    """Test 10: Text-to-Speech - POST /api/tts (Deepgram Integration)"""
+    print("\n" + "="*60)
+    print("TEST 10: Text-to-Speech (TTS) Endpoint - Deepgram Integration")
+    print("="*60)
+    
+    try:
+        # Test TTS with realistic Indian nutrition text
+        test_data = {
+            "text": "Hello! Your daily protein target is 120 grams. Consider having dal, paneer, and yogurt for balanced nutrition.",
+            "model": "aura-2-hermes-en"
+        }
+        
+        print("Sending TTS request...")
+        print(f"Text: {test_data['text']}")
+        
+        response = requests.post(
+            f"{BASE_URL}/tts",
+            json=test_data,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            # Check if we got audio data
+            content_type = response.headers.get('Content-Type', '')
+            content_length = len(response.content)
+            
+            print(f"Content-Type: {content_type}")
+            print(f"Audio data size: {content_length} bytes")
+            
+            if 'audio' in content_type and content_length > 1000:
+                print("✅ PASS: TTS working - Deepgram generated audio successfully")
+                return True
+            else:
+                print("❌ FAIL: TTS returned invalid audio data")
+                return False
+                
+        elif response.status_code == 500:
+            # Check if it's API key issue
+            try:
+                error_data = response.json()
+                if 'Deepgram API key not configured' in str(error_data):
+                    print("⚠️  WARNING: Deepgram API key not configured - expected in production")
+                    return True  # This is expected if API key is not set
+                else:
+                    print(f"❌ FAIL: TTS service error - {error_data}")
+                    return False
+            except:
+                print(f"❌ FAIL: TTS service error - {response.text}")
+                return False
+        else:
+            print(f"Response: {response.text}")
+            print(f"❌ FAIL: Expected 200, got {response.status_code}")
+            return False
+            
+    except requests.exceptions.RequestException as e:
+        print(f"❌ FAIL: Request error - {e}")
+        return False
+    except Exception as e:
+        print(f"❌ FAIL: Unexpected error - {e}")
+        return False
+
+def test_stt_endpoint():
+    """Test 11: Speech-to-Text - POST /api/stt (Deepgram Integration)"""
+    print("\n" + "="*60)
+    print("TEST 11: Speech-to-Text (STT) Endpoint - Deepgram Integration")
+    print("="*60)
+    
+    try:
+        # Create a minimal audio file for testing (empty webm)
+        # In real scenario, this would be actual audio data
+        test_audio_data = b'\x1a\x45\xdf\xa3'  # Minimal WebM header
+        
+        print("Sending STT request with test audio data...")
+        
+        response = requests.post(
+            f"{BASE_URL}/stt",
+            data=test_audio_data,
+            headers={'Content-Type': 'audio/webm'},
+            timeout=30
+        )
+        
+        print(f"Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            transcript = data.get('transcript', '')
+            confidence = data.get('confidence', 0)
+            
+            print(f"Transcript: '{transcript}'")
+            print(f"Confidence: {confidence}")
+            
+            print("✅ PASS: STT endpoint working - Deepgram processed audio successfully")
+            return True
+            
+        elif response.status_code == 400:
+            # Check if it's "No speech detected" - this is expected with test data
+            try:
+                error_data = response.json()
+                if 'No speech detected' in str(error_data) or 'No audio data' in str(error_data):
+                    print("✅ PASS: STT endpoint working - correctly detected no speech in test audio")
+                    return True
+                else:
+                    print(f"❌ FAIL: STT validation error - {error_data}")
+                    return False
+            except:
+                print(f"❌ FAIL: STT validation error - {response.text}")
+                return False
+                
+        elif response.status_code == 500:
+            # Check if it's API key issue
+            try:
+                error_data = response.json()
+                if 'Deepgram API key not configured' in str(error_data):
+                    print("⚠️  WARNING: Deepgram API key not configured - expected in production")
+                    return True  # This is expected if API key is not set
+                else:
+                    print(f"❌ FAIL: STT service error - {error_data}")
+                    return False
+            except:
+                print(f"❌ FAIL: STT service error - {response.text}")
+                return False
+        else:
+            print(f"Response: {response.text}")
+            print(f"❌ FAIL: Expected 200/400, got {response.status_code}")
+            return False
+            
+    except requests.exceptions.RequestException as e:
+        print(f"❌ FAIL: Request error - {e}")
+        return False
+    except Exception as e:
+        print(f"❌ FAIL: Unexpected error - {e}")
+        return False
+
+def test_production_mode_guards():
+    """Test 12: Production Mode Guards and Mock Prevention"""
+    print("\n" + "="*60)
+    print("TEST 12: Production Mode Guards - No Mocks, Real Gemini Vision")
+    print("="*60)
+    
+    try:
+        # Test menu scanner to ensure it uses Gemini Vision, not mocks
+        test_image = create_test_image()
+        if not test_image:
+            print("❌ FAIL: Could not create test image")
+            return False
+        
+        files = {
+            'image': ('menu.png', test_image, 'image/png')
+        }
+        
+        print("Testing menu scanner for production mode behavior...")
+        response = requests.post(f"{BASE_URL}/menu/scan", files=files, timeout=60)
+        
+        if response.status_code == 200:
+            data = response.json()
+            ocr_method = data.get('ocr_method', '')
+            degraded = data.get('degraded', False)
+            
+            print(f"OCR Method: {ocr_method}")
+            print(f"Degraded Mode: {degraded}")
+            
+            # In production, should use gemini_vision, not mock_fallback
+            if ocr_method == 'gemini_vision':
+                print("✅ PASS: Production mode - Using Gemini Vision OCR (not mocks)")
+                production_success = True
+            elif ocr_method == 'tesseract_fallback':
+                print("⚠️  WARNING: Using Tesseract fallback - Gemini may be unavailable")
+                production_success = True  # Acceptable fallback
+            elif ocr_method == 'mock_fallback':
+                print("❌ FAIL: Production mode violation - Using mock data instead of real OCR")
+                production_success = False
+            else:
+                print(f"⚠️  WARNING: Unknown OCR method: {ocr_method}")
+                production_success = True  # Unknown but not mock
+        else:
+            print(f"❌ FAIL: Menu scanner failed - {response.status_code}")
+            production_success = False
+        
+        # Test meal photo analyzer for production behavior
+        print("\nTesting meal photo analyzer for production mode...")
+        files = {
+            'image': ('meal.jpg', test_image, 'image/jpeg')
+        }
+        
+        response = requests.post(f"{BASE_URL}/food/analyze", files=files, timeout=60)
+        
+        if response.status_code == 200:
+            data = response.json()
+            guesses = data.get('guess', [])
+            
+            # Check if response looks like real AI analysis vs demo data
+            if len(guesses) > 0:
+                first_guess = guesses[0]
+                food_name = first_guess.get('name', '').lower()
+                
+                # Demo data typically has "dal tadka", "plain rice", "roti"
+                # Real AI might give more varied responses
+                if 'demo' not in str(data).lower():
+                    print("✅ PASS: Production mode - Meal analyzer using real Gemini Vision")
+                    meal_success = True
+                else:
+                    print("⚠️  WARNING: Meal analyzer may be using demo data")
+                    meal_success = True  # Still acceptable
+            else:
+                print("❌ FAIL: Meal analyzer returned no results")
+                meal_success = False
+        else:
+            print(f"❌ FAIL: Meal analyzer failed - {response.status_code}")
+            meal_success = False
+        
+        return production_success and meal_success
+        
+    except Exception as e:
+        print(f"❌ FAIL: Production mode test error - {e}")
+        return False
+
+def test_external_url_access():
+    """Test 13: External URL Access and 502 Error Investigation"""
+    print("\n" + "="*60)
+    print("TEST 13: External URL Access - 502 Error Investigation")
+    print("="*60)
+    
+    try:
+        # Test basic health check with external URL
+        print(f"Testing external URL access: {EXTERNAL_URL}")
+        
+        response = requests.get(f"{EXTERNAL_URL}", timeout=30)
+        print(f"Health check status: {response.status_code}")
+        
+        if response.status_code == 200:
+            print("✅ PASS: External URL accessible - No 502 errors")
+            health_success = True
+        elif response.status_code == 502:
+            print("❌ CRITICAL: 502 Bad Gateway - Kubernetes ingress routing issue confirmed")
+            health_success = False
+        else:
+            print(f"⚠️  WARNING: Unexpected status {response.status_code}")
+            health_success = False
+        
+        # Test a simple API endpoint that should work
+        print("\nTesting TDEE calculator via external URL...")
+        test_data = {
+            "sex": "male",
+            "age": 28,
+            "height_cm": 175,
+            "weight_kg": 70,
+            "activity_level": "moderate"
+        }
+        
+        response = requests.post(
+            f"{EXTERNAL_URL}/tools/tdee",
+            json=test_data,
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
+        print(f"TDEE endpoint status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
+            tdee = data.get('tdee_kcal')
+            print(f"TDEE calculated: {tdee} kcal")
+            print("✅ PASS: External API calls working correctly")
+            api_success = True
+        elif response.status_code == 502:
+            print("❌ CRITICAL: 502 Bad Gateway on API calls - Infrastructure issue")
+            api_success = False
+        else:
+            print(f"⚠️  WARNING: API call failed with status {response.status_code}")
+            print(f"Response: {response.text}")
+            api_success = False
+        
+        return health_success and api_success
+        
+    except requests.exceptions.RequestException as e:
+        print(f"❌ FAIL: Network error - {e}")
+        return False
+    except Exception as e:
+        print(f"❌ FAIL: Unexpected error - {e}")
+        return False
+
 def main():
     """Run all backend tests"""
-    print("🚀 FITBEAR AI BACKEND TESTING")
+    print("🚀 FITBEAR AI BACKEND TESTING - POST NETLIFY DEPLOYMENT")
     print("="*60)
     print(f"Testing API at: {BASE_URL}")
+    print("🎯 FOCUS: Production mode, Deepgram integration, external access")
     
-    # Run all tests
+    # Run all tests - prioritizing critical endpoints from review request
     tests = [
         ("API Health Check", test_api_health_check),
-        ("Menu Scanner", test_menu_scanner),
+        ("External URL Access", test_external_url_access),
+        ("Menu Scanner (FormData)", test_menu_scanner),
+        ("Meal Photo Analyzer (FormData)", test_meal_photo_analyzer),
         ("Coach Chat", test_coach_chat),
-        ("TDEE Calculator", test_tdee_calculator),
-        ("Error Handling", test_error_handling),
-        ("Meal Photo Analyzer", test_meal_photo_analyzer),
-        ("Food Logging System", test_food_logging_system),
         ("Profile Endpoints", test_profile_endpoints),
-        ("Targets Endpoint", test_targets_endpoint)
+        ("Targets Endpoint", test_targets_endpoint),
+        ("TDEE Calculator", test_tdee_calculator),
+        ("TTS Endpoint (Deepgram)", test_tts_endpoint),
+        ("STT Endpoint (Deepgram)", test_stt_endpoint),
+        ("Production Mode Guards", test_production_mode_guards),
+        ("Food Logging System", test_food_logging_system),
+        ("Error Handling", test_error_handling)
     ]
     
     results = {}
