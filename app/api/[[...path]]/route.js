@@ -714,7 +714,13 @@ Format response as JSON with: guess, portion_hint, confidence, question.`;
     try {
       const parsed = JSON.parse(response);
       return parsed;
-    } catch {
+    } catch (parseError) {
+      console.error('Failed to parse Gemini Vision response as JSON:', parseError);
+      console.log('Raw response:', response);
+      
+      assertNoMock('meal photo analysis: failed to parse AI response');
+      
+      // Demo fallback (only in non-production)
       return {
         guess: [
           { food_id: "dal-tadka", name: "Dal Tadka", confidence: 0.8 },
