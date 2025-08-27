@@ -322,6 +322,21 @@ frontend:
         agent: "testing"
         comment: "🎉 ARCHITECTURE MISMATCH SUCCESSFULLY FIXED: Identified and resolved the critical issue where getProfile() function in page.js was still using direct Supabase table access (supabase.from('profiles').select()) instead of MongoDB API endpoints. SOLUTION IMPLEMENTED: 1) Updated getProfile() function to use '/api/me/profile' endpoint instead of direct Supabase table queries, 2) Added proper error handling and fallback to onboarding when profile not found, 3) Maintained existing onComplete handler that already uses correct API endpoints (PUT /api/me/profile and PUT /api/me/targets). TESTING RESULTS: ✅ Successfully created new account and reached onboarding without 'table public.profiles' error, ✅ Profile setup flow works correctly using MongoDB API endpoints, ✅ No more schema cache errors, ✅ Smooth authentication and profile loading. The architecture mismatch has been completely resolved - frontend now consistently uses MongoDB API endpoints instead of direct Supabase table access."
 
+  - task: "BPS Onboarding Profile Saving - 502 Error Investigation"
+    implemented: true
+    working: false
+    file: "/app/app/page.js"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "URGENT: User reports getting 'Setup Error: Failed to save profile: 502 -' when completing the BPS onboarding. Despite previous fixes, the issue persists. Need to investigate authentication context, request format, response handling, and network issues."
+      - working: false
+        agent: "testing"
+        comment: "🚨 CRITICAL INFRASTRUCTURE ISSUE IDENTIFIED: Comprehensive testing reveals the root cause of '502 -' errors during onboarding completion. FINDINGS: 1) ✅ Application code is working perfectly - all API endpoints return 200 status when accessed locally (localhost:3000), 2) ✅ Onboarding completion simulation successful internally with proper profile/targets saving, 3) ❌ External domain API calls return 502 Bad Gateway errors - confirmed via curl and browser testing, 4) ✅ Previous fixes (JSON parsing, safeJson utility, architecture mismatch) are correct and working, 5) ❌ ROOT CAUSE: Kubernetes ingress routing issue preventing external /api/* requests from reaching the backend service. IMPACT: Users can complete onboarding steps but fail at 'Complete Setup' when API calls are made. SOLUTION NEEDED: Fix Kubernetes ingress configuration to properly route /api/* requests to port 3000. This is an infrastructure issue, not application code issue."
+
 metadata:
   created_by: "main_agent"
   version: "3.0"
