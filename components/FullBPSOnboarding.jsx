@@ -106,8 +106,8 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
         throw new Error('Invalid numerical values in form data. Please check your inputs.');
       }
       
-      // Calculate TDEE with fallback mechanism
-      let tdeeData;
+      // Calculate TDEE with safeJson and fallback mechanism
+      let tdeeKcal;
       try {
         const tdeeResponse = await fetch('/api/tools/tdee', {
           method: 'POST',
@@ -115,62 +115,26 @@ export function FullBPSOnboarding({ onComplete, loading = false }) {
           body: JSON.stringify(tdeeRequestData)
         });
         
-        // Get response as text first to avoid consumption issues
-        const responseText = await tdeeResponse.text();
+        const tdeeData = await safeJson(tdeeResponse);
+        tdeeKcal = tdeeData?.tdee_kcal;
         
-        console.log('TDEE Response status:', tdeeResponse.status);
-        console.log('TDEE Raw response text:', responseText);
-        
-        if (!tdeeResponse.ok) {
-          console.error('TDEE API Error:', responseText);
-          throw new Error(`TDEE calculation failed: ${tdeeResponse.status} ${tdeeResponse.statusText} - ${responseText}`);
+        if (!Number.isFinite(tdeeKcal)) {
+          throw new Error('API returned invalid TDEE value');
         }
         
-        // Check if response is empty or invalid
-        if (!responseText || responseText.trim() === '') {
-          throw new Error('TDEE API returned empty response');
-        }
-        
-        try {
-          tdeeData = JSON.parse(responseText);
-          console.log('TDEE Parsed data:', tdeeData);
-        } catch (parseError) {
-          console.error('JSON Parse Error:', parseError);
-          console.error('Response text was:', responseText);
-          throw new Error(`Failed to parse TDEE response as JSON: ${parseError.message}. Response was: ${responseText}`);
-        }
-        
-        // Validate the parsed data
-        if (!tdeeData || typeof tdeeData.tdee_kcal !== 'number' || isNaN(tdeeData.tdee_kcal)) {
-          throw new Error(`Invalid TDEE response format or NaN result: ${JSON.stringify(tdeeData)}`);
-        }
+        console.log('✅ TDEE API success:', tdeeKcal, 'kcal');
         
       } catch (apiError) {
-        console.error('TDEE API call failed, using fallback calculation:', apiError.message);
+        console.warn('TDEE API failed, using local fallback calculation:', apiError.message);
         
-        // Fallback TDEE calculation using Harris-Benedict equation
-        let bmr;
-        if (formData.gender === 'male') {
-          bmr = 88.362 + (13.397 * weight_kg) + (4.799 * height_cm) - (5.677 * age);
-        } else {
-          bmr = 447.593 + (9.247 * weight_kg) + (3.098 * height_cm) - (4.330 * age);
+        // Local fallback so the user can continue even if the API is flaky
+        tdeeKcal = computeLocalTDEE(tdeeRequestData);
+        console.log('✅ Local TDEE fallback:', tdeeKcal, 'kcal');
+        
+        // Optional user notification
+        if (typeof alert !== 'undefined') {
+          alert('Using offline calculation for your daily needs.');
         }
-        
-        const activityMultipliers = {
-          sedentary: 1.2,
-          light: 1.375,
-          moderate: 1.55,
-          active: 1.725,
-          very_active: 1.9
-        };
-        
-        const fallbackTdee = Math.round(bmr * (activityMultipliers[formData.activity_level] || 1.55));
-        
-        tdeeData = { tdee_kcal: fallbackTdee };
-        console.log('Using fallback TDEE calculation:', tdeeData);
-        
-        // Show user a warning about the fallback
-        alert('Note: Using offline calculation for your daily calorie needs. Your profile will still be saved correctly.');
       }
       
       // Prepare profile data
