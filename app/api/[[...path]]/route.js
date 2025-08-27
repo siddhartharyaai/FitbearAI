@@ -411,30 +411,6 @@ export async function POST(request) {
       }
     }
     
-    // TDEE calculation endpoint
-    if (pathname.includes('/tools/tdee')) {
-      const { sex, age, height_cm, weight_kg, activity_level } = await request.json();
-      
-      let bmr;
-      if (sex === 'male') {
-        bmr = 88.362 + (13.397 * weight_kg) + (4.799 * height_cm) - (5.677 * age);
-      } else {
-        bmr = 447.593 + (9.247 * weight_kg) + (3.098 * height_cm) - (4.330 * age);
-      }
-      
-      const activityMultipliers = {
-        sedentary: 1.2,
-        light: 1.375,
-        moderate: 1.55,
-        active: 1.725,
-        very_active: 1.9
-      };
-      
-      const tdee = Math.round(bmr * (activityMultipliers[activity_level] || 1.55));
-      
-      return NextResponse.json({ tdee_kcal: tdee });
-    }
-    
     return NextResponse.json(
       { error: { type: 'Logic', message: 'Endpoint not found' } },
       { status: 404 }
