@@ -760,35 +760,164 @@ async function getFoodLogs(from, to) {
   ];
 }
 
-async function getUserProfile() {
-  return {
-    name: "Demo User",
-    height_cm: 165,
-    weight_kg: 65,
-    veg_flag: true,
-    activity_level: "moderate"
-  };
+async function getUserProfile(userId = 'demo-user') {
+  try {
+    const db = await connectToDatabase();
+    const profile = await db.collection('profiles').findOne({ user_id: userId });
+    
+    if (profile) {
+      return {
+        ...profile,
+        id: profile._id?.toString()
+      };
+    }
+    
+    // Return demo data if no profile found
+    return {
+      name: "Demo User",
+      height_cm: 165,
+      weight_kg: 65,
+      veg_flag: true,
+      activity_level: "moderate"
+    };
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return {
+      name: "Demo User",
+      height_cm: 165,
+      weight_kg: 65,
+      veg_flag: true,
+      activity_level: "moderate"
+    };
+  }
 }
 
 async function updateUserProfile(profileData) {
-  return { ...profileData, updated_at: new Date().toISOString() };
+  try {
+    const db = await connectToDatabase();
+    const userId = profileData.user_id || 'demo-user';
+    
+    const updateDoc = {
+      ...profileData,
+      updated_at: new Date(),
+      user_id: userId
+    };
+    
+    const result = await db.collection('profiles').findOneAndUpdate(
+      { user_id: userId },
+      { 
+        $set: updateDoc,
+        $setOnInsert: { created_at: new Date() }
+      },
+      { 
+        returnDocument: 'after', 
+        upsert: true 
+      }
+    );
+    
+    if (result.value) {
+      return {
+        ...result.value,
+        id: result.value._id?.toString()
+      };
+    } else {
+      return updateDoc;
+    }
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    // Return the data with timestamp even if DB operation failed
+    return { 
+      ...profileData, 
+      updated_at: new Date().toISOString(),
+      error: 'Database operation failed but data processed'
+    };
+  }
 }
 
-async function getDailyTargets(date) {
-  return {
-    date: date || new Date().toISOString().split('T')[0],
-    tdee_kcal: 2200,
-    kcal_budget: 1800,
-    protein_g: 110,
-    carb_g: 200,
-    fat_g: 60,
-    fiber_g: 30,
-    sodium_mg: 2000,
-    water_ml: 2500,
-    steps: 8000
-  };
+async function getDailyTargets(date, userId = 'demo-user') {
+  try {
+    const db = await connectToDatabase();
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    
+    const target = await db.collection('targets').findOne({ 
+      user_id: userId, 
+      date: targetDate 
+    });
+    
+    if (target) {
+      return {
+        ...target,
+        id: target._id?.toString()
+      };
+    }
+    
+    // Return demo data if no target found
+    return {
+      date: targetDate,
+      tdee_kcal: 2400,
+      kcal_budget: 2200,
+      protein_g: 140,
+      carb_g: 250,
+      fat_g: 75,
+      fiber_g: 30,
+      water_ml: 2500,
+      steps: 8000
+    };
+  } catch (error) {
+    console.error('Error fetching daily targets:', error);
+    return {
+      date: date || new Date().toISOString().split('T')[0],
+      tdee_kcal: 2400,
+      kcal_budget: 2200,
+      protein_g: 140,
+      carb_g: 250,
+      fat_g: 75,
+      fiber_g: 30,
+      water_ml: 2500,
+      steps: 8000
+    };
+  }
 }
 
 async function upsertDailyTargets(targetData) {
-  return { ...targetData, updated_at: new Date().toISOString() };
+  try {
+    const db = await connectToDatabase();
+    const userId = targetData.user_id || 'demo-user';
+    const targetDate = targetData.date || new Date().toISOString().split('T')[0];
+    
+    const updateDoc = {
+      ...targetData,
+      user_id: userId,
+      date: targetDate,
+      updated_at: new Date()
+    };
+    
+    const result = await db.collection('targets').findOneAndUpdate(
+      { user_id: userId, date: targetDate },
+      { 
+        $set: updateDoc,
+        $setOnInsert: { created_at: new Date() }
+      },
+      { 
+        returnDocument: 'after', 
+        upsert: true 
+      }
+    );
+    
+    if (result.value) {
+      return {
+        ...result.value,
+        id: result.value._id?.toString()
+      };
+    } else {
+      return updateDoc;
+    }
+  } catch (error) {
+    console.error('Error upserting daily targets:', error);
+    return { 
+      ...targetData, 
+      updated_at: new Date().toISOString(),
+      error: 'Database operation failed but data processed'
+    };
+  }
 }
