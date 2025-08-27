@@ -1,5 +1,12 @@
 # Fitbear AI - Implementation Summary
 
+## Architecture: M0 uses Supabase Auth and MongoDB for data. Supabase DB is planned for M1 migration.
+
+**Current Setup**: `DB_PROVIDER=mongo`
+- **Authentication**: Supabase Auth (email/password)
+- **Data Storage**: MongoDB (profiles, targets, logs, food data)
+- **Migration Strategy**: Planned dual-write for M1 transition to Supabase DB
+
 ## Current Status: ✅ M0 COMPLETE - TRUE PRODUCTION READY
 
 ### Core Features Implemented (11/11) ✅
