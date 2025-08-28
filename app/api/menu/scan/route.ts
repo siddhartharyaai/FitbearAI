@@ -9,6 +9,14 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.includes("multipart/form-data")) {
+      assertNoMock("menu scan: content type must be multipart/form-data");
+      return NextResponse.json({ 
+        error: "Content-Type must be multipart/form-data" 
+      }, { status: 400 });
+    }
+
     const form = await req.formData();
     const file = form.get("image") as File | null;
     
@@ -18,21 +26,23 @@ export async function POST(req: Request) {
     }
     
     if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 });
+      return NextResponse.json({ 
+        error: "Gemini API key not configured" 
+      }, { status: 500 });
     }
     
     // Convert file to base64
-    const buffer = Buffer.from(new Uint8Array(await file.arrayBuffer()));
-    const base64 = buffer.toString("base64");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const base64 = Buffer.from(bytes).toString("base64");
     
     console.log('Processing menu image with Gemini Vision OCR...');
     
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    const prompt = `You are an expert Indian nutrition coach. Analyze this restaurant menu image and provide food recommendations.
+    const prompt = `You are an expert nutrition coach. Analyze this restaurant menu image and provide food recommendations.
 
 Extract all food items with their prices. For each item, categorize as:
-- "recommended": High protein, balanced nutrition, fits Indian healthy eating
+- "recommended": High protein, balanced nutrition, fits healthy eating
 - "alternate": Moderate choice, acceptable with portion control  
 - "avoid": High calorie, processed, or nutritionally poor
 
@@ -43,12 +53,14 @@ Return JSON format:
   "recommendations": [
     {
       "name": "Food Item Name",
-      "price": "₹XX or extracted price",
+      "price": "₹XX or extracted price", 
       "category": "recommended|alternate|avoid",
       "reason": "Brief nutrition reasoning"
     }
   ]
-}`;
+}
+
+Be specific about actual menu items visible. Do NOT invent Indian dishes that aren't on this menu.`;
 
     const result = await model.generateContent([
       prompt,
@@ -98,7 +110,9 @@ Return JSON format:
   } catch (error) {
     console.error('Menu scan error:', error);
     
-    assertNoMock("menu scan: processing error");
+    if (error.message.includes('Mock path blocked')) {
+      throw error; // Re-throw production guard errors
+    }
     
     return NextResponse.json({ 
       error: "Menu scanning failed",
