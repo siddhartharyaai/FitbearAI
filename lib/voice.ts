@@ -1,4 +1,4 @@
-// Deepgram Voice Utilities for Fitbear AI Production
+// Deepgram Voice Utilities for Production
 
 let currentAudio: HTMLAudioElement | null = null;
 let currentUrl: string | null = null;
@@ -68,16 +68,9 @@ export function stopSpeaking(): void {
 }
 
 /**
- * Check if TTS is currently playing
+ * Complete push-to-talk workflow: record → transcribe
  */
-export function isSpeaking(): boolean {
-  return currentAudio && !currentAudio.paused;
-}
-
-/**
- * Record audio using push-to-talk (Web API)
- */
-export async function recordAudio(maxDuration = 5000): Promise<Blob> {
+export async function pushToTalk(maxDuration = 5000): Promise<{ text: string }> {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ 
       audio: {
@@ -109,7 +102,7 @@ export async function recordAudio(maxDuration = 5000): Promise<Blob> {
       }
     }, maxDuration);
     
-    return new Promise((resolve, reject) => {
+    const audioBlob = await new Promise<Blob>((resolve, reject) => {
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach(track => track.stop());
         
@@ -129,21 +122,7 @@ export async function recordAudio(maxDuration = 5000): Promise<Blob> {
       };
     });
     
-  } catch (error) {
-    console.error('Microphone access error:', error);
-    throw new Error(`Microphone access failed: ${(error as Error).message}`);
-  }
-}
-
-/**
- * Transcribe audio using Deepgram STT
- */
-export async function transcribeAudio(audioBlob: Blob): Promise<{ text: string; confidence: number }> {
-  try {
-    if (!audioBlob || audioBlob.size === 0) {
-      throw new Error('No audio data to transcribe');
-    }
-    
+    // Transcribe audio using Deepgram STT
     console.log('Sending audio for Deepgram transcription, size:', audioBlob.size, 'bytes');
     
     const response = await fetch('/api/stt', {
@@ -162,30 +141,13 @@ export async function transcribeAudio(audioBlob: Blob): Promise<{ text: string; 
     const result = await response.json();
     console.log('Deepgram transcription result:', result);
     
-    return {
-      text: result.transcript || '',
-      confidence: result.confidence || 0
-    };
-    
-  } catch (error) {
-    console.error('Deepgram STT error:', error);
-    throw error;
-  }
-}
-
-/**
- * Complete push-to-talk workflow: record → transcribe
- */
-export async function pushToTalk(maxDuration = 5000): Promise<{ text: string; confidence: number }> {
-  try {
-    const audioBlob = await recordAudio(maxDuration);
-    const transcription = await transcribeAudio(audioBlob);
-    
-    if (!transcription.text.trim()) {
+    if (!result.text || !result.text.trim()) {
       throw new Error('No speech detected in recording');
     }
     
-    return transcription;
+    return {
+      text: result.text.trim()
+    };
     
   } catch (error) {
     console.error('Push-to-talk error:', error);
@@ -194,12 +156,8 @@ export async function pushToTalk(maxDuration = 5000): Promise<{ text: string; co
 }
 
 /**
- * Check if voice features are available
+ * Check if TTS is currently playing
  */
-export function isVoiceSupported(): { tts: boolean; stt: boolean; mediaRecorder: boolean } {
-  return {
-    tts: true, // Deepgram TTS via API
-    stt: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
-    mediaRecorder: typeof MediaRecorder !== 'undefined'
-  };
+export function isSpeaking(): boolean {
+  return currentAudio && !currentAudio.paused;
 }
