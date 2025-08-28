@@ -129,7 +129,13 @@ export default function FitbearApp() {
     try {
       let result;
       if (isSignUp) {
-        result = await supabase.auth.signUp({ email, password });
+        result = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
       } else {
         result = await supabase.auth.signInWithPassword({ email, password });
       }
@@ -149,11 +155,18 @@ export default function FitbearApp() {
         remembered: rememberMe
       });
 
-      setUser(result.data.user);
-      toast({
-        title: isSignUp ? "Account Created" : "Welcome Back",
-        description: isSignUp ? "Please check your email to verify your account" : "You've successfully signed in",
-      });
+      if (isSignUp) {
+        toast({
+          title: "Account Created",
+          description: "Please check your email to verify your account",
+        });
+      } else {
+        setUser(result.data.user);
+        toast({
+          title: "Welcome Back",
+          description: "You've successfully signed in",
+        });
+      }
 
     } catch (error) {
       console.error('Auth error:', error);
