@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { text, model = "aura-asteria-en" } = await req.json();
     
     if (!text) {
-      return new Response(JSON.stringify({ error: "No text provided" }), { 
+      return new Response(JSON.stringify({ error: "No text" }), { 
         status: 400,
         headers: { "Content-Type": "application/json" }
       });
@@ -38,8 +38,8 @@ export async function POST(req: Request) {
       });
     }
     
-    const audioBuffer = await response.arrayBuffer();
-    return new Response(audioBuffer, { 
+    const audio = await response.arrayBuffer();
+    return new Response(audio, { 
       headers: { "Content-Type": "audio/mpeg" }
     });
     
