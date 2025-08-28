@@ -1,0 +1,91 @@
+name: Production CI/CD
+
+on:
+  push:
+    branches: [ main, prod-fixes-netlify ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: TypeScript type check
+      run: npx tsc --noEmit
+      continue-on-error: true
+    
+    - name: Build application
+      run: npm run build
+      env:
+        APP_MODE: production
+        NEXT_PUBLIC_APP_MODE: production
+        ALLOW_MOCKS: false
+        NEXT_PUBLIC_ALLOW_MOCKS: false
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+    
+    - name: No-mock grep check
+      run: |
+        echo "Checking for forbidden mock strings in API routes..."
+        if grep -r -i -E "(dal|paneer|fake|demo|mock)" app/api/ --exclude-dir=node_modules || true; then
+          echo "❌ Found mock/demo strings in API routes - this should not be in production"
+          exit 1
+        else
+          echo "✅ No forbidden mock strings found"
+        fi
+    
+    - name: Start application for smoke tests
+      run: |
+        npm start &
+        APP_PID=$!
+        echo "APP_PID=$APP_PID" >> $GITHUB_ENV
+        
+        # Wait for app to start
+        timeout 30 bash -c 'until curl -s http://localhost:3000/api/health/app; do sleep 1; done'
+      env:
+        APP_MODE: production
+        MONGODB_URI: mongodb://localhost:27017
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+    
+    - name: Backend smoke tests
+      run: |
+        echo "Running backend smoke tests..."
+        
+        # Test 1: WhoAmI
+        echo "Testing /api/whoami"
+        curl -s http://localhost:3000/api/whoami | jq .
+        
+        # Test 2: Health
+        echo "Testing /api/health/app"
+        curl -s http://localhost:3000/api/health/app | jq .
+        
+        # Test 3: Menu scan - bad request should fail
+        echo "Testing /api/menu/scan without image (should fail)"
+        response=$(curl -s -w "%{http_code}" -X POST http://localhost:3000/api/menu/scan \
+          -H "Content-Type: application/json" -d '{}' -o /tmp/response.json)
+        if [ "$response" = "400" ]; then
+          echo "✅ Menu scan correctly rejected invalid request"
+        else
+          echo "❌ Menu scan should return 400 for invalid request, got $response"
+          cat /tmp/response.json
+          exit 1
+        fi
+    
+    - name: Cleanup
+      run: |
+        if [ -n "$APP_PID" ]; then
+          kill $APP_PID || true
+        fi
