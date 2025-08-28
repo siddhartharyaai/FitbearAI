@@ -31,15 +31,13 @@ export async function POST(req: Request) {
     
     const result = await response.json();
     const transcript = result.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
-    const confidence = result.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0;
     
     if (!transcript) {
       return NextResponse.json({ error: "No speech detected" }, { status: 400 });
     }
     
     return NextResponse.json({
-      transcript,
-      confidence
+      text: transcript
     });
     
   } catch (error) {
