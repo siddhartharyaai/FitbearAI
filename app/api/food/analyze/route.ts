@@ -9,6 +9,14 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.includes("multipart/form-data")) {
+      assertNoMock("meal photo analysis: content type must be multipart/form-data");
+      return NextResponse.json({ 
+        error: "Content-Type must be multipart/form-data" 
+      }, { status: 400 });
+    }
+
     const form = await req.formData();
     const file = form.get("image") as File | null;
     
@@ -18,25 +26,29 @@ export async function POST(req: Request) {
     }
     
     if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 });
+      return NextResponse.json({ 
+        error: "Gemini API key not configured" 
+      }, { status: 500 });
     }
     
     // Convert file to base64
-    const buffer = Buffer.from(new Uint8Array(await file.arrayBuffer()));
-    const base64 = buffer.toString("base64");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const base64 = Buffer.from(bytes).toString("base64");
     
     console.log('Processing meal photo with Gemini Vision AI...');
     
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    const prompt = `You are an expert Indian nutrition coach. Analyze this meal photo and identify the food items.
+    const prompt = `You are an expert nutrition coach. Analyze this meal photo and identify the food items.
 
-Look carefully at the image and identify Indian dishes. Common items include:
+Look carefully at the image and identify specific dishes. If you can see Indian foods like:
 - Pani puri/Golgappa, Bhel puri, Chaat items
 - Dal (various types), Rice, Roti, Naan
 - Sabzi (vegetable curries), Paneer dishes
 - South Indian: Dosa, Idli, Vada, Sambar
 - Snacks: Samosa, Pakora, Dhokla
+
+Or any other cuisine, identify what you actually see - don't invent dishes.
 
 For each identified food item, estimate:
 1. Confidence score (0.1 to 1.0)
@@ -62,7 +74,7 @@ Return JSON format:
   "processing_time": "< 2s"
 }
 
-If you're unsure about specific items, ask ONE clarifying question.`;
+If you're unsure about specific items, ask ONE clarifying question. Only identify what you can actually see in the image.`;
 
     const result = await model.generateContent([
       prompt,
@@ -112,7 +124,9 @@ If you're unsure about specific items, ask ONE clarifying question.`;
   } catch (error) {
     console.error('Photo analysis error:', error);
     
-    assertNoMock("meal photo analysis: processing error");
+    if (error.message.includes('Mock path blocked')) {
+      throw error; // Re-throw production guard errors
+    }
     
     return NextResponse.json({ 
       error: "Meal photo analysis failed",
