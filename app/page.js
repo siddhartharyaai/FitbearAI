@@ -406,23 +406,6 @@ export default function FitbearApp() {
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password (min 6 characters)"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
                 <div className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -440,16 +423,9 @@ export default function FitbearApp() {
                   className="w-full"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Sign In
+                  Send Magic Link
                 </Button>
                 <div className="text-center space-y-2">
-                  <Button
-                    variant="link"
-                    onClick={() => setStep('forgot')}
-                    className="text-sm"
-                  >
-                    Forgot Password?
-                  </Button>
                   <div className="text-sm text-muted-foreground">
                     Don't have an account?{' '}
                     <Button
