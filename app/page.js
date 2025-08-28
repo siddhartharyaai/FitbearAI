@@ -97,28 +97,10 @@ export default function FitbearApp() {
     if (loading) return;
 
     // Validation
-    if (!email || !password) {
+    if (!email) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (password.length < 6) {
-      toast({
-        title: "Validation Error", 
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (isSignUp && password !== confirmPassword) {
-      toast({
-        title: "Validation Error",
-        description: "Passwords do not match",
+        description: "Please enter your email address",
         variant: "destructive",
       });
       return;
@@ -129,6 +111,27 @@ export default function FitbearApp() {
     try {
       let result;
       if (isSignUp) {
+        // For sign up, still use password
+        if (!password) {
+          toast({
+            title: "Validation Error",
+            description: "Please enter a password for sign up",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
+        if (password.length < 6) {
+          toast({
+            title: "Validation Error", 
+            description: "Password must be at least 6 characters",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+        
         result = await supabase.auth.signUp({ 
           email, 
           password,
@@ -137,7 +140,13 @@ export default function FitbearApp() {
           }
         });
       } else {
-        result = await supabase.auth.signInWithPassword({ email, password });
+        // For sign in, use OTP (magic link)
+        result = await supabase.auth.signInWithOtp({
+          email,
+          options: { 
+            emailRedirectTo: `${window.location.origin}/auth/callback` 
+          }
+        });
       }
 
       if (result.error) throw result.error;
@@ -151,7 +160,7 @@ export default function FitbearApp() {
 
       // Track authentication
       track(isSignUp ? 'user_signed_up' : 'user_signed_in', {
-        method: 'email_password',
+        method: isSignUp ? 'email_password' : 'email_otp',
         remembered: rememberMe
       });
 
@@ -161,10 +170,9 @@ export default function FitbearApp() {
           description: "Please check your email to verify your account",
         });
       } else {
-        setUser(result.data.user);
         toast({
-          title: "Welcome Back",
-          description: "You've successfully signed in",
+          title: "Magic Link Sent",
+          description: "Check your email and click the link to sign in",
         });
       }
 
