@@ -1,14 +1,13 @@
 [build]
-  command = "yarn build"
+  command = "npm run build"
   publish = ".next"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
 
 [build.environment]
   NODE_VERSION = "20"
 
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
 [functions]
+  external_node_modules = ["sharp", "tesseract.js", "@deepgram/sdk", "@google/generative-ai", "mongodb", "@supabase/supabase-js", "@supabase/ssr"]
   node_bundler = "esbuild"
-  external_node_modules = ["mongodb", "@google/generative-ai", "@supabase/supabase-js", "@supabase/ssr"]
-  included_files = ["public/**"]
